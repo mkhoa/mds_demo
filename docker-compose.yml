@@ -1,0 +1,31 @@
+services:
+  magic:
+    image: mageai/mageai:latest
+    command: mage start ${mage_project_name}
+    env_file:
+      - .env
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      USER_CODE_PATH: /home/src/${mage_project_name}
+      ENV: ${ENV}
+    ports:
+      - 6789:6789
+    volumes:
+      - ./mage_data
+    restart: on-failure:5
+
+  # minio:
+  #   image: minio/minio
+  #   container_name: minio
+  #   ports:
+  #     - "9000:9000"
+  #     - "9001:9001"
+  #   volumes:
+  #     - ./storage:/data
+  #   environment:
+  #     MINIO_ROOT_USER: ${min_io_admin}
+  #     MINIO_ROOT_PASSWORD: ${min_io_pwd}
+  #   command: server --console-address ":9001" /data
+
