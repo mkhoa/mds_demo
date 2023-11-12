@@ -1,3 +1,5 @@
 .parquet
 .csv
 .xlsx
+/storage/dwhfilesystem/*
+/storage/.minio.sys/*
