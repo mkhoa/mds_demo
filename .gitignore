@@ -2,5 +2,5 @@
 .csv
 .xlsx
 .meta
-storage/dwhfilesystem/*
-storage/.minio.sys/*
+storage/*
+!storage/dwhfilesystem/readme.md
