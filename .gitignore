@@ -1,5 +1,6 @@
 .parquet
 .csv
 .xlsx
+.meta
 storage/dwhfilesystem/*
 storage/.minio.sys/*
