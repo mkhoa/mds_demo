@@ -4,3 +4,5 @@
 .meta
 storage/dwhfilesystem/*/*
 storage/.minio.sys/*
+.*
+!/.gitignore
