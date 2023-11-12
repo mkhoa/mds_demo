@@ -16,6 +16,8 @@ services:
       - ./application/mage_ai/:/home/src
       - ~/.aws:/root/.aws
       - ~/.mage_data:/root/.mage_data
+    networks:
+      - ndsnet
     restart: on-failure:5
 
   minio:
@@ -26,8 +28,42 @@ services:
       - "9001:9001"
     volumes:
       - ./storage:/data
+      - ./storage/export:/export
     environment:
       MINIO_ROOT_USER: ${min_io_admin}
       MINIO_ROOT_PASSWORD: ${min_io_pwd}
+      MINIO_ACCESS_KEY: YpWqZwajFbA2GyK68woE
+      MINIO_SECRET_KEY: DvjF0UCZ7KpuBhEeSm08fIZ4xQtD3qNENJL0HhFP
     command: server --console-address ":9001" /data
+    networks:
+      - ndsnet
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
+  mc:
+    image: minio/mc
+    container_name: mc
+    hostname: mc
+    environment:
+      - AWS_ACCESS_KEY_ID= ${min_io_admin}
+      - AWS_SECRET_ACCESS_KEY= ${min_io_pwd}
+      - AWS_REGION=us-east-1
+    networks:
+      - ndsnet
+    entrypoint: >
+      /bin/sh -c "
+      until (/usr/bin/mc config host add minio http://minio:9000 ${min_io_admin} ${min_io_pwd}) do echo '...waiting...' && sleep 1; done;
+      /usr/bin/mc mb minio/dwhfilesystem;
+      /usr/bin/mc policy set public minio/dwhfilesystem;
+      exit 0;
+      "    
+    depends_on:
+      minio:
+        condition: service_healthy  
+
+networks:
+  ndsnet:
+    driver: bridge

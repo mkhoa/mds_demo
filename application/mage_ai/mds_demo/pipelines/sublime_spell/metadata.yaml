@@ -3,18 +3,53 @@ blocks:
   color: null
   configuration:
     file_path: null
-  downstream_blocks: []
+  downstream_blocks:
+  - unpivot_table
   executor_config: null
   executor_type: local_python
   has_callback: false
   language: python
   name: vietnam_stock_finance_data/vndirect_stock_data
   retry_config: null
-  status: failed
+  status: executed
   timeout: null
   type: data_loader
   upstream_blocks: []
   uuid: vietnam_stock_finance_data/vndirect_stock_data
+- all_upstream_blocks_executed: true
+  color: null
+  configuration:
+    file_path: null
+  downstream_blocks:
+  - spirited_elm
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: unpivot_table
+  retry_config: null
+  status: executed
+  timeout: null
+  type: transformer
+  upstream_blocks:
+  - vietnam_stock_finance_data/vndirect_stock_data
+  uuid: unpivot_table
+- all_upstream_blocks_executed: true
+  color: null
+  configuration: {}
+  downstream_blocks: []
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: spirited elm
+  retry_config: null
+  status: executed
+  timeout: null
+  type: data_exporter
+  upstream_blocks:
+  - unpivot_table
+  uuid: spirited_elm
 callbacks: []
 concurrency_config: {}
 conditionals: []
@@ -32,6 +67,6 @@ run_pipeline_in_one_process: false
 spark_config: {}
 tags: []
 type: python
-updated_at: '2023-11-11 10:06:58'
+updated_at: '2023-11-12 13:09:03'
 uuid: sublime_spell
 widgets: []

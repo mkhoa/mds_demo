@@ -19,7 +19,7 @@ blocks:
   color: null
   configuration: {}
   downstream_blocks:
-  - export_titanic_clean
+  - write_to_min_io
   executor_config: null
   executor_type: local_python
   has_callback: null
@@ -38,16 +38,16 @@ blocks:
   downstream_blocks: []
   executor_config: null
   executor_type: local_python
-  has_callback: null
+  has_callback: false
   language: python
-  name: export_titanic_clean
+  name: write_to_min_io
   retry_config: null
   status: not_executed
   timeout: null
   type: data_exporter
   upstream_blocks:
   - fill_in_missing_values
-  uuid: export_titanic_clean
+  uuid: write_to_min_io
 callbacks: []
 concurrency_config: {}
 conditionals: []
@@ -65,6 +65,6 @@ run_pipeline_in_one_process: false
 spark_config: {}
 tags: []
 type: python
-updated_at: '2023-11-11 10:06:58'
+updated_at: '2023-11-12 10:50:58'
 uuid: example_pipeline
 widgets: []
