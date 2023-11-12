@@ -1,0 +1,21 @@
+blocks: []
+callbacks: []
+concurrency_config: {}
+conditionals: []
+created_at: '2023-11-11 09:06:29.379751+00:00'
+data_integration: null
+description: null
+executor_config: {}
+executor_count: 1
+executor_type: null
+extensions: {}
+name: falling spellcaster
+notification_config: {}
+retry_config: {}
+run_pipeline_in_one_process: false
+spark_config: {}
+tags: []
+type: python
+updated_at: '2023-11-11 09:08:21'
+uuid: falling_spellcaster
+widgets: []

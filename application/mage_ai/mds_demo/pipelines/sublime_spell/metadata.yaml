@@ -1,0 +1,37 @@
+blocks:
+- all_upstream_blocks_executed: true
+  color: null
+  configuration:
+    file_path: null
+  downstream_blocks: []
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: vietnam_stock_finance_data/vndirect_stock_data
+  retry_config: null
+  status: failed
+  timeout: null
+  type: data_loader
+  upstream_blocks: []
+  uuid: vietnam_stock_finance_data/vndirect_stock_data
+callbacks: []
+concurrency_config: {}
+conditionals: []
+created_at: '2023-11-11 08:30:47.168576+00:00'
+data_integration: null
+description: null
+executor_config: {}
+executor_count: 1
+executor_type: null
+extensions: {}
+name: sublime spell
+notification_config: {}
+retry_config: {}
+run_pipeline_in_one_process: false
+spark_config: {}
+tags: []
+type: python
+updated_at: '2023-11-11 10:06:58'
+uuid: sublime_spell
+widgets: []

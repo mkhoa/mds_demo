@@ -1,0 +1,5 @@
+config:
+  api_key: null
+  secret_key: null
+source: amplitude
+catalog: {}

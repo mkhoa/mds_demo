@@ -1,2 +1,6 @@
 pandas
 mage-ai
+urllib3
+plotly
+vnstock
+openpyxl
