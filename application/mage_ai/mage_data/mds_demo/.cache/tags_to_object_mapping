@@ -1,1 +1,1 @@
-{}
+{"finance_demo": {"Pipeline": {"balance_sheet_pipeline": {"added_at": 1701510667.039513, "pipeline": {"description": null, "name": "balance_sheet_pipeline", "type": "python", "updated_at": "2023-12-02 09:50:22", "uuid": "balance_sheet_pipeline"}, "updated_at": 1701510667.039718}, "income_statement_pipeline": {"added_at": 1701510684.692111, "pipeline": {"description": null, "name": "income_statement_pipeline", "type": "python", "updated_at": "2023-12-02 09:42:23", "uuid": "income_statement_pipeline"}, "updated_at": 1701510684.692465}}}}

@@ -10,6 +10,8 @@ services:
     environment:
       USER_CODE_PATH: /home/src/${PROJECT_NAME}
       ENV: ${ENV}
+      MINIO_ROOT_USER: ${min_io_admin}
+      MINIO_ROOT_PASSWORD: ${min_io_pwd}
     ports:
       - 6789:6789
     volumes:

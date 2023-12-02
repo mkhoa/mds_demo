@@ -3,10 +3,6 @@ import pandas as pd
 
 from pandas import DataFrame
 from vnstock import *
-from datetime import date
-
-today = date.today()
-date_id = today.strftime("%Y%m%d")
 
 def unpivot_table(df: DataFrame) -> DataFrame:
     df = pd.melt(df, id_vars=['symbol', 'Metrics'])
@@ -19,8 +15,8 @@ def load_fs_data(**kwargs) -> DataFrame:
     Template for loading Financial Statement data
 
     """
-    symbol = ['MWG', 'SSI', 'VNM', 'FPT']
-    report_type = 'IncomeStatement'
+    symbol = ['MWG', 'SSI', 'VNM', 'FPT', 'CEO', 'HAG']
+    report_type = 'BalanceSheet'
     frequency = 'Yearly'
 
     df = pd.DataFrame()
@@ -35,7 +31,6 @@ def load_fs_data(**kwargs) -> DataFrame:
 
     df = df.rename(columns={"CHỈ TIÊU": "Metrics"})
     df = unpivot_table(df)
-    df['date_id'] = date_id
 
     return df
 

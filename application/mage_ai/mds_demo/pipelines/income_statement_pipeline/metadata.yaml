@@ -11,17 +11,17 @@ blocks:
   language: python
   name: vietnam_stock_finance_data/vndirect_stock_data
   retry_config: null
-  status: executed
+  status: updated
   timeout: null
   type: data_loader
   upstream_blocks: []
   uuid: vietnam_stock_finance_data/vndirect_stock_data
-- all_upstream_blocks_executed: true
+- all_upstream_blocks_executed: false
   color: null
   configuration:
     file_path: null
   downstream_blocks:
-  - spirited_elm
+  - finance_stock_demo/save_to_minio
   executor_config: null
   executor_type: local_python
   has_callback: false
@@ -34,22 +34,24 @@ blocks:
   upstream_blocks:
   - vietnam_stock_finance_data/vndirect_stock_data
   uuid: unpivot_table
-- all_upstream_blocks_executed: true
+- all_upstream_blocks_executed: false
   color: null
-  configuration: {}
+  configuration:
+    dynamic: true
+    file_path: null
   downstream_blocks: []
   executor_config: null
   executor_type: local_python
   has_callback: false
   language: python
-  name: spirited elm
+  name: finance_stock_demo/save_to_minio
   retry_config: null
   status: executed
   timeout: null
   type: data_exporter
   upstream_blocks:
   - unpivot_table
-  uuid: spirited_elm
+  uuid: finance_stock_demo/save_to_minio
 callbacks: []
 concurrency_config: {}
 conditionals: []
@@ -60,13 +62,16 @@ executor_config: {}
 executor_count: 1
 executor_type: null
 extensions: {}
-name: sublime spell
+name: income_statement_pipeline
 notification_config: {}
 retry_config: {}
 run_pipeline_in_one_process: false
 spark_config: {}
-tags: []
+tags:
+- finance_demo
 type: python
-updated_at: '2023-11-12 13:09:03'
-uuid: sublime_spell
+updated_at: '2023-12-02 09:42:23'
+uuid: income_statement_pipeline
+variables:
+  delta_folder_path: s3://dwhfilesystem/raw_area/vn_stock_income_statement
 widgets: []

@@ -1,0 +1,94 @@
+blocks:
+- all_upstream_blocks_executed: true
+  color: null
+  configuration:
+    file_path: null
+  downstream_blocks:
+  - unpivot_table
+  - vndirect_balance_sheet_data
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: vietnam_stock_finance_data/vndirect_stock_data
+  retry_config: null
+  status: executed
+  timeout: null
+  type: data_loader
+  upstream_blocks: []
+  uuid: vietnam_stock_finance_data/vndirect_stock_data
+- all_upstream_blocks_executed: true
+  color: null
+  configuration: {}
+  downstream_blocks: []
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: vndirect_balance_sheet_data
+  retry_config: null
+  status: executed
+  timeout: null
+  type: data_loader
+  upstream_blocks:
+  - vietnam_stock_finance_data/vndirect_stock_data
+  uuid: vndirect_balance_sheet_data
+- all_upstream_blocks_executed: true
+  color: null
+  configuration:
+    file_path: null
+  downstream_blocks:
+  - finance_stock_demo/save_to_minio
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: unpivot_table
+  retry_config: null
+  status: executed
+  timeout: null
+  type: transformer
+  upstream_blocks:
+  - vietnam_stock_finance_data/vndirect_stock_data
+  uuid: unpivot_table
+- all_upstream_blocks_executed: true
+  color: null
+  configuration:
+    dynamic: true
+    file_path: null
+  downstream_blocks: []
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: finance_stock_demo/save_to_minio
+  retry_config: null
+  status: executed
+  timeout: null
+  type: data_exporter
+  upstream_blocks:
+  - unpivot_table
+  uuid: finance_stock_demo/save_to_minio
+callbacks: []
+concurrency_config: {}
+conditionals: []
+created_at: '2023-11-11 08:30:47.168576+00:00'
+data_integration: null
+description: null
+executor_config: {}
+executor_count: 1
+executor_type: null
+extensions: {}
+name: balance_sheet_pipeline
+notification_config: {}
+retry_config: {}
+run_pipeline_in_one_process: false
+spark_config: {}
+tags:
+- finance_demo
+type: python
+updated_at: '2023-12-02 09:53:20'
+uuid: balance_sheet_pipeline
+variables:
+  delta_folder_path: s3://dwhfilesystem/raw_area/vn_stock_balance_sheet
+widgets: []
