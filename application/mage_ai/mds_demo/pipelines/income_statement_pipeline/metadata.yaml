@@ -70,7 +70,7 @@ spark_config: {}
 tags:
 - finance_demo
 type: python
-updated_at: '2023-12-02 09:42:23'
+updated_at: '2023-12-02 10:32:52'
 uuid: income_statement_pipeline
 variables:
   delta_folder_path: s3://dwhfilesystem/raw_area/vn_stock_income_statement
