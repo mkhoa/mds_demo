@@ -1,8 +1,7 @@
 import pandas as pd
-import s3fs
-import fsspec
 import os
 
+from deltalake.writer import write_deltalake
 from mage_ai.io.config import ConfigKey, EnvironmentVariableLoader
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -18,35 +17,37 @@ def export_data(df, *args, **kwargs):
 
     Docs: https://delta-io.github.io/delta-rs/python/usage.html#writing-delta-tables
     """
-
     config = EnvironmentVariableLoader()
-    MINIO_URL = config.get('min_io_url')
     MINIO_USER = config.get('min_io_admin')
     MINIO_KEY = config.get('min_io_pwd')
-
-    fsspec.config.conf = {
-      "s3":
-      {
-        "key": MINIO_USER,
-        "secret": MINIO_KEY,
-        "client_kwargs": {
-          "endpoint_url": os.getenv("S3_ENDPOINT", MINIO_URL)
-        }
-      }
-    }
     
+    storage_options = {
+        'AWS_ACCESS_KEY_ID': MINIO_USER,
+        'AWS_SECRET_ACCESS_KEY': MINIO_KEY,
+        'AWS_ENDPOINT_URL': 'http://minio:9000',
+        'AWS_REGION': 'us-east-1',
+        'AWS_S3_ALLOW_UNSAFE_RENAME': 'true',
+        'AWS_ALLOW_HTTP': 'true',
+        'AWS_STORAGE_ALLOW_HTTP': 'true'
+    }
+
     today = datetime.now(ZoneInfo("Asia/Ho_Chi_Minh"))
     year_month_id = today.strftime("%Y%m")
     date_id = today.strftime("%Y%m%d")
     timestamp_id = today.strftime("%H%M%S")
-
-    bucket = kwargs.get('bucket')
-    folder_path = kwargs.get('folder_path')
-    landing_path = f"s3://{bucket}/{folder_path}/{year_month_id}/{date_id}/{timestamp_id}.csv"
 
     # Add partition column to DataFrame
     df['year_month_id'] = year_month_id
     df['date_id'] = date_id
     df['timestamp_id'] = timestamp_id
 
-    df.to_csv(landing_path, index=False)
+    uri = kwargs.get('delta_folder_path')
+
+    write_deltalake(
+        uri,
+        df,
+        mode='overwrite',          # append or overwrite
+        overwrite_schema=False, # set True to alter the schema when overwriting
+        partition_by=['year_month_id', 'date_id', 'timestamp_id'],
+        storage_options=storage_options,
+    )

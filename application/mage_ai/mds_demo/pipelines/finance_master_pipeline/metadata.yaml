@@ -1,0 +1,54 @@
+blocks:
+- all_upstream_blocks_executed: true
+  color: null
+  configuration: {}
+  downstream_blocks:
+  - versatile_oracle
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: insightful hill
+  retry_config: null
+  status: executed
+  timeout: null
+  type: data_loader
+  upstream_blocks: []
+  uuid: insightful_hill
+- all_upstream_blocks_executed: true
+  color: null
+  configuration: {}
+  downstream_blocks: []
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: versatile oracle
+  retry_config: null
+  status: executed
+  timeout: null
+  type: data_loader
+  upstream_blocks:
+  - insightful_hill
+  uuid: versatile_oracle
+callbacks: []
+concurrency_config: {}
+conditionals: []
+created_at: '2023-12-02 16:32:47.884790+00:00'
+data_integration: null
+description: null
+executor_config: {}
+executor_count: 1
+executor_type: null
+extensions: {}
+name: finance_master_pipeline
+notification_config: {}
+retry_config: {}
+run_pipeline_in_one_process: false
+spark_config: {}
+tags:
+- finance_demo
+type: python
+updated_at: '2023-12-02 16:45:07'
+uuid: finance_master_pipeline
+widgets: []

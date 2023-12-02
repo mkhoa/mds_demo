@@ -16,7 +16,7 @@ def load_fs_data(**kwargs) -> DataFrame:
 
     """
     symbol = ['MWG', 'SSI', 'VNM', 'FPT', 'CEO', 'HAG']
-    report_type = 'BalanceSheet'
+    report_type = 'IncomeStatement'
     frequency = 'Yearly'
 
     df = pd.DataFrame()

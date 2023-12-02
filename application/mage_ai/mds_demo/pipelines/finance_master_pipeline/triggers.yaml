@@ -1,0 +1,11 @@
+triggers:
+- envs: []
+  name: restless music
+  pipeline_uuid: finance_master_pipeline
+  schedule_interval: '@once'
+  schedule_type: time
+  settings: null
+  sla: null
+  start_time: 2023-12-01 16:45:00
+  status: active
+  variables: null

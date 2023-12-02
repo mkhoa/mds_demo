@@ -1,6 +1,10 @@
 pandas
-mage-ai
 urllib3
 plotly
 vnstock
 openpyxl
+s3fs
+jupyterlab
+duckdb
+dbt-core
+dbt-duckdb
