@@ -1,1 +1,1 @@
-{"symbol": "str", "report_type": "str", "Metrics": "str", "variable": "str", "value": "float64", "date_id": "str"}
+{"symbol": "str", "Metrics": "str", "variable": "str", "value": "float64", "date_id": "str"}

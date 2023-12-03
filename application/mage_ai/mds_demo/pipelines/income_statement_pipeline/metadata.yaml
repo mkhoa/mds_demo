@@ -11,12 +11,12 @@ blocks:
   language: python
   name: vietnam_stock_finance_data/vndirect_Income_Statement
   retry_config: null
-  status: failed
+  status: executed
   timeout: null
   type: data_loader
   upstream_blocks: []
   uuid: vietnam_stock_finance_data/vndirect_income_statement
-- all_upstream_blocks_executed: false
+- all_upstream_blocks_executed: true
   color: null
   configuration:
     file_path: null
@@ -34,7 +34,7 @@ blocks:
   upstream_blocks:
   - vietnam_stock_finance_data/vndirect_income_statement
   uuid: no_transform_blocks
-- all_upstream_blocks_executed: false
+- all_upstream_blocks_executed: true
   color: null
   configuration:
     dynamic: true
@@ -64,19 +64,15 @@ executor_type: null
 extensions: {}
 name: income_statement_pipeline
 notification_config: {}
-remote_variables_dir: null
 retry_config: {}
 run_pipeline_in_one_process: false
-settings:
-  triggers: null
 spark_config: {}
 tags:
 - finance_demo
 type: python
-updated_at: '2023-12-02 20:46:22'
+updated_at: '2023-12-02 16:31:14'
 uuid: income_statement_pipeline
 variables:
   bucket: dwhfilesystem
   folder_path: raw_area/vn_finance_project/vn_stock_incomestatement
-variables_dir: /home/src/mage_data/mds_demo
 widgets: []
