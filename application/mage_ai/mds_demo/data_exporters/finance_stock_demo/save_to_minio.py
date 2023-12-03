@@ -49,4 +49,4 @@ def export_data(df, *args, **kwargs):
     df['date_id'] = date_id
     df['timestamp_id'] = timestamp_id
 
-    df.to_csv(landing_path, index=False)
+    df.to_csv(landing_path, index=False, quoting=2)

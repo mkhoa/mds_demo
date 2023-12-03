@@ -1,4 +1,4 @@
-block_type: data_exporter
+block_type: data_loader
 color: null
 configuration: null
 description: null

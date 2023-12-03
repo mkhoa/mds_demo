@@ -31,23 +31,15 @@ def export_data(df, *args, **kwargs):
         'AWS_STORAGE_ALLOW_HTTP': 'true'
     }
 
-    today = datetime.now(ZoneInfo("Asia/Ho_Chi_Minh"))
-    year_month_id = today.strftime("%Y%m")
-    date_id = today.strftime("%Y%m%d")
-    timestamp_id = today.strftime("%H%M%S")
-
-    # Add partition column to DataFrame
-    df['year_month_id'] = year_month_id
-    df['date_id'] = date_id
-    df['timestamp_id'] = timestamp_id
-
-    uri = kwargs.get('delta_folder_path')
+    bucket = kwargs.get('bucket')
+    destination_path = kwargs.get('destination_path')
+    landing_path = f"s3://{bucket}/{destination_path}"
 
     write_deltalake(
-        uri,
+        landing_path,
         df,
         mode='overwrite',          # append or overwrite
-        overwrite_schema=False, # set True to alter the schema when overwriting
+        overwrite_schema=True, # set True to alter the schema when overwriting
         partition_by=['year_month_id', 'date_id', 'timestamp_id'],
         storage_options=storage_options,
     )
