@@ -5,7 +5,7 @@ services:
       - .env
     build:
       context: .
-      dockerfile: Dockerfile.etl_layers
+      dockerfile: ./application/mage_ai/Dockerfile
     environment:
       USER_CODE_PATH: /home/src/${PROJECT_NAME}
       ENV: ${ENV}
@@ -44,37 +44,16 @@ services:
       timeout: 5s
       retries: 5
 
-  mc:
-    image: minio/mc
-    container_name: mc
-    hostname: mc
-    environment:
-      - AWS_ACCESS_KEY_ID= ${min_io_admin}
-      - AWS_SECRET_ACCESS_KEY= ${min_io_pwd}
-      - AWS_REGION=us-east-1
-    networks:
-      - ndsnet
-    entrypoint: >
-      /bin/sh -c "
-      until (/usr/bin/mc config host add minio http://minio:9000 ${min_io_admin} ${min_io_pwd}) do echo '...waiting...' && sleep 1; done;
-      /usr/bin/mc mb minio/dwhfilesystem;
-      /usr/bin/mc policy set public minio/dwhfilesystem;
-      exit 0;
-      "    
-    depends_on:
-      minio:
-        condition: service_healthy  
-
   jupyterlab:
     env_file:
       - .env
     build:
       context: .
-      dockerfile: Dockerfile.anlytics_layers
+      dockerfile: ./application/jupyterlab/Dockerfile
     ports:
       - "8888:8888"
     volumes:
-      - ./application/jupyterlab/:/opt/app/data
+      - ./application/jupyterlab/data:/opt/app/data
     entrypoint: sh -c 'jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --notebook-dir=/opt/app/data --NotebookApp.token='admin' --allow-root'
     networks:
       - ndsnet

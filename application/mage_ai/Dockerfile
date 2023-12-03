@@ -1,7 +1,6 @@
 # syntax=docker/dockerfile:1
 FROM mageai/mageai:latest
-ARG USER_CODE_PATH=/home/src/${PROJECT_NAME}
-COPY requirements.txt /tmp/requirements.txt
+COPY application/mage_ai/requirements.txt /tmp/requirements.txt
 RUN pip install --upgrade pip
 RUN pip install -r /tmp/requirements.txt
 COPY . .

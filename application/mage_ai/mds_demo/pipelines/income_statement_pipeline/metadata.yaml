@@ -64,15 +64,19 @@ executor_type: null
 extensions: {}
 name: income_statement_pipeline
 notification_config: {}
+remote_variables_dir: null
 retry_config: {}
 run_pipeline_in_one_process: false
+settings:
+  triggers: null
 spark_config: {}
 tags:
 - finance_demo
 type: python
-updated_at: '2023-12-02 16:31:14'
+updated_at: '2023-12-03 16:58:22'
 uuid: income_statement_pipeline
 variables:
   bucket: dwhfilesystem
   folder_path: raw_area/vn_finance_project/vn_stock_incomestatement
+variables_dir: /home/src/mage_data/mds_demo
 widgets: []

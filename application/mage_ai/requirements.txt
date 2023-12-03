@@ -1,0 +1,6 @@
+pandas
+urllib3
+plotly
+vnstock
+openpyxl
+s3fs
