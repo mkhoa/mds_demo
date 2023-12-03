@@ -6,7 +6,7 @@ services:
       - .env
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.etl_layers
     environment:
       USER_CODE_PATH: /home/src/${PROJECT_NAME}
       ENV: ${ENV}
@@ -71,7 +71,7 @@ services:
       - .env
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.anlytics_layers
     ports:
       - "8888:8888"
     volumes:
