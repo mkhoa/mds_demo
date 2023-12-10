@@ -33,6 +33,8 @@ services:
     environment:
       MINIO_ROOT_USER: ${min_io_admin}
       MINIO_ROOT_PASSWORD: ${min_io_pwd}
+      MINIO_SERVER_URL: http://localhost
+      MINIO_BROWSER_REDIRECT_URL: http://localhost/minio/
       MINIO_ACCESS_KEY: YpWqZwajFbA2GyK68woE
       MINIO_SECRET_KEY: DvjF0UCZ7KpuBhEeSm08fIZ4xQtD3qNENJL0HhFP
     command: server --console-address ":9001" /data
