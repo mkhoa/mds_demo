@@ -6,3 +6,4 @@ storage/dwhfilesystem/*/*
 storage/.minio.sys/*
 .*
 !/.gitignore
+frontend_dist_base_path/
