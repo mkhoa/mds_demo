@@ -7,3 +7,4 @@ storage/.minio.sys/*
 .*
 !/.gitignore
 frontend_dist_base_path/
+application/clickhouse/data
