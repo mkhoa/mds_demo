@@ -68,6 +68,7 @@ services:
   trino:
     ports:
       - "8080:8080"
+      - "9443:9443"
     image: "trinodb/trino:latest"
     volumes:
       - ./application/trino/etc:/usr/lib/trino/etc:ro
@@ -190,6 +191,47 @@ services:
     networks:
       - ndsnet
 
+  cubejs:
+    image: cubejs/cube:latest
+    ports:
+      - 4000:4000
+    volumes:
+      - .application/cube/cubejs/conf:/cube/conf
+    environment:
+      - CUBEJS_CUBESTORE_HOST=cubestore_router
+      - CUBEJS_DEV_MODE=true
+    networks:
+      - ndsnet
+
+  cubestore_router:
+    restart: always
+    image: cubejs/cubestore:latest
+    environment:
+      - CUBESTORE_WORKERS=cubestore_worker:10001
+      - CUBESTORE_REMOTE_DIR=/cube/data
+      - CUBESTORE_META_PORT=9999
+      - CUBESTORE_SERVER_NAME=cubestore_router:9999
+    volumes:
+      - .application/cube/cubestore:/cube/data
+    networks:
+      - ndsnet
+ 
+  cubestore_worker:
+    restart: always
+    image: cubejs/cubestore:latest
+    environment:
+      - CUBESTORE_WORKERS=cubestore_worker:10001
+      - CUBESTORE_SERVER_NAME=cubestore_worker:10001
+      - CUBESTORE_WORKER_PORT=10001
+      - CUBESTORE_REMOTE_DIR=/cube/data
+      - CUBESTORE_META_ADDR=cubestore_router:9999
+    volumes:
+      - .application/cube/cubestore:/cube/data
+    depends_on:
+      - cubestore_router
+    networks:
+      - ndsnet
+ 
 networks:
   ndsnet:
     driver: bridge
