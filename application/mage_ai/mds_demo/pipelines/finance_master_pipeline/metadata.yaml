@@ -2,8 +2,7 @@ blocks:
 - all_upstream_blocks_executed: true
   color: null
   configuration: {}
-  downstream_blocks:
-  - versatile_oracle
+  downstream_blocks: []
   executor_config: null
   executor_type: local_python
   has_callback: false
@@ -15,22 +14,7 @@ blocks:
   type: data_loader
   upstream_blocks: []
   uuid: insightful_hill
-- all_upstream_blocks_executed: true
-  color: null
-  configuration: {}
-  downstream_blocks: []
-  executor_config: null
-  executor_type: local_python
-  has_callback: false
-  language: python
-  name: versatile oracle
-  retry_config: null
-  status: executed
-  timeout: null
-  type: data_loader
-  upstream_blocks:
-  - insightful_hill
-  uuid: versatile_oracle
+cache_block_output_in_memory: false
 callbacks: []
 concurrency_config: {}
 conditionals: []
@@ -43,12 +27,16 @@ executor_type: null
 extensions: {}
 name: finance_master_pipeline
 notification_config: {}
+remote_variables_dir: null
 retry_config: {}
 run_pipeline_in_one_process: false
+settings:
+  triggers: null
 spark_config: {}
 tags:
 - finance_demo
 type: python
-updated_at: '2023-12-02 16:45:07'
+updated_at: '2023-12-02T16:45:07+00:00'
 uuid: finance_master_pipeline
+variables_dir: /home/src/mage_data/mds_demo
 widgets: []
