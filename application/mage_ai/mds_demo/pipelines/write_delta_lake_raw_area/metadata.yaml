@@ -1,0 +1,100 @@
+blocks:
+- all_upstream_blocks_executed: true
+  color: null
+  configuration:
+    dynamic: true
+  downstream_blocks:
+  - load_data_from_raw_area
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: get_files_list_from_raw_area
+  retry_config: null
+  status: updated
+  timeout: null
+  type: data_loader
+  upstream_blocks: []
+  uuid: get_files_list_from_raw_area
+- all_upstream_blocks_executed: false
+  color: null
+  configuration: {}
+  downstream_blocks:
+  - no_transform_blocks
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: load_data_from_raw_area
+  retry_config: null
+  status: updated
+  timeout: null
+  type: data_loader
+  upstream_blocks:
+  - get_files_list_from_raw_area
+  uuid: load_data_from_raw_area
+- all_upstream_blocks_executed: false
+  color: null
+  configuration: {}
+  downstream_blocks:
+  - write_to_s3_delta_format_raw_area
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: no_transform_blocks
+  retry_config: null
+  status: executed
+  timeout: null
+  type: transformer
+  upstream_blocks:
+  - load_data_from_raw_area
+  uuid: no_transform_blocks
+- all_upstream_blocks_executed: false
+  color: null
+  configuration: {}
+  downstream_blocks: []
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: write_to_s3_delta_format_raw_area
+  retry_config: null
+  status: executed
+  timeout: null
+  type: data_exporter
+  upstream_blocks:
+  - no_transform_blocks
+  uuid: write_to_s3_delta_format_raw_area
+cache_block_output_in_memory: false
+callbacks: []
+concurrency_config: {}
+conditionals: []
+created_at: '2024-01-21 16:15:23.580945+00:00'
+data_integration: null
+description: null
+executor_config: {}
+executor_count: 1
+executor_type: null
+extensions: {}
+name: write_delta_lake_raw_area
+notification_config: {}
+remote_variables_dir: null
+retry_config: {}
+run_pipeline_in_one_process: false
+settings:
+  triggers: null
+spark_config: {}
+tags:
+- master_pipeline
+- raw_area
+type: python
+updated_at: '2024-01-21 18:39:37'
+uuid: write_delta_lake_raw_area
+variables:
+  bucket: dwhfilesystem
+  folder_path: vn_retailer_data/modern_trade_retailer_location
+  src_container: landing_area
+  tgt_cointainer: raw_area
+variables_dir: /home/src/mage_data/mds_demo
+widgets: []

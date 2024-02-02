@@ -6,3 +6,8 @@ s3fs
 duckdb
 jupyterlab
 jupyterthemes
+selenium
+webdriver-manager
+beautifulsoup4
+pycaret
+profet

@@ -61,3 +61,10 @@ features:
   display_local_timezone: true
   notebook_block_output_split_view: true
   operation_history: true
+  code_block_v2: true
+  custom_design: true
+  dbt_v2: true
+  global_hooks: true
+  project_platform: true
+openai_api_key: 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
+pipelines:

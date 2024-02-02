@@ -4,3 +4,7 @@ plotly
 vnstock
 openpyxl
 s3fs
+selenium
+webdriver-manager
+beautifulsoup4
+googlemaps

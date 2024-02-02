@@ -1,0 +1,97 @@
+blocks:
+- all_upstream_blocks_executed: true
+  color: null
+  configuration: {}
+  downstream_blocks:
+  - combining_dataframe_block
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: crawl_data_from_winmart
+  retry_config: null
+  status: executed
+  timeout: null
+  type: data_loader
+  upstream_blocks: []
+  uuid: crawl_data_from_winmart
+- all_upstream_blocks_executed: true
+  color: null
+  configuration: {}
+  downstream_blocks:
+  - combining_dataframe_block
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: crawl_data_from_7eleven
+  retry_config: null
+  status: executed
+  timeout: null
+  type: data_loader
+  upstream_blocks: []
+  uuid: crawl_data_from_7eleven
+- all_upstream_blocks_executed: true
+  color: null
+  configuration: {}
+  downstream_blocks:
+  - save_to_minio_csv
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: combining_dataframe_block
+  retry_config: null
+  status: executed
+  timeout: null
+  type: transformer
+  upstream_blocks:
+  - crawl_data_from_winmart
+  - crawl_data_from_7eleven
+  uuid: combining_dataframe_block
+- all_upstream_blocks_executed: true
+  color: null
+  configuration: {}
+  downstream_blocks: []
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: save_to_minio_csv
+  retry_config: null
+  status: executed
+  timeout: null
+  type: data_exporter
+  upstream_blocks:
+  - combining_dataframe_block
+  uuid: save_to_minio_csv
+cache_block_output_in_memory: false
+callbacks: []
+concurrency_config: {}
+conditionals: []
+created_at: '2024-01-14 09:28:56.471285+00:00'
+data_integration: null
+description: null
+executor_config: {}
+executor_count: 1
+executor_type: null
+extensions: {}
+name: vn_retailer_modern_trade_crawling
+notification_config: {}
+remote_variables_dir: null
+retry_config: {}
+run_pipeline_in_one_process: false
+settings:
+  triggers: null
+spark_config: {}
+tags:
+- sales_geospatical_analytics
+type: python
+updated_at: '2024-01-21 18:42:36'
+uuid: vn_retailer_modern_trade_crawling
+variables:
+  bucket: dwhfilesystem
+  container: landing_area
+  folder_path: vn_retailer_data/modern_trade_retailer_location
+variables_dir: /home/src/mage_data/mds_demo
+widgets: []

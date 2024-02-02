@@ -74,7 +74,7 @@ spark_config: {}
 tags:
 - finance_demo
 type: python
-updated_at: '2023-12-12 12:39:09'
+updated_at: '2024-01-14 10:30:18'
 uuid: income_statement_pipeline
 variables:
   bucket: dwhfilesystem

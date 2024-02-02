@@ -18,8 +18,7 @@ blocks:
 - all_upstream_blocks_executed: false
   color: null
   configuration: {}
-  downstream_blocks:
-  - write_to_min_io
+  downstream_blocks: []
   executor_config: null
   executor_type: local_python
   has_callback: null
@@ -32,22 +31,7 @@ blocks:
   upstream_blocks:
   - load_titanic
   uuid: fill_in_missing_values
-- all_upstream_blocks_executed: false
-  color: null
-  configuration: {}
-  downstream_blocks: []
-  executor_config: null
-  executor_type: local_python
-  has_callback: false
-  language: python
-  name: write_to_min_io
-  retry_config: null
-  status: not_executed
-  timeout: null
-  type: data_exporter
-  upstream_blocks:
-  - fill_in_missing_values
-  uuid: write_to_min_io
+cache_block_output_in_memory: false
 callbacks: []
 concurrency_config: {}
 conditionals: []
@@ -60,11 +44,15 @@ executor_type: null
 extensions: {}
 name: example_pipeline
 notification_config: {}
+remote_variables_dir: null
 retry_config: {}
 run_pipeline_in_one_process: false
+settings:
+  triggers: null
 spark_config: {}
 tags: []
 type: python
-updated_at: '2023-11-12 10:50:58'
+updated_at: '2023-11-12T10:50:58+00:00'
 uuid: example_pipeline
+variables_dir: /home/src/mage_data/mds_demo
 widgets: []
