@@ -162,33 +162,12 @@ services:
     networks:
       - ndsnet
 
-  # optional to add clickhouse in the architect
-  # clickhouse:
-  #   image: clickhouse/clickhouse-server:latest
-  #   volumes:
-  #     # optional to persist data locally
-  #     - ./application/clickhouse/data:/var/lib/clickhouse/
-  #     # optional to add own config
-  #     - ./application/clickhouse/config.d/:/etc/clickhouse-server/config.d/
-  #     # optional to add users or enable settings for a default user
-  #     - ./application/clickhouse/users.d/:/etc/clickhouse-server/users.d/
-  #     # clickhouse client < /sql/myquery.sql
-  #     - ./application/clickhouse/sql:/sql
-  #   ports:
-  #     - 9090:9000
-  #     - 8123:8123
-  #     - 8446:8443
-  #   networks:
-  #     - ndsnet
-
-  cloudbeaver:
-    image: dbeaver/cloudbeaver:latest
-    volumes:
-      # optional to persist data locally
-      - ./application/cloudbeaver/workspace:/opt/cloudbeaver/workspace
-      # - ./application/cloudbeaver/conf:/opt/cloudbeaver/conf
+  starrocks:
+    image: starrocks/allin1-ubuntu:latest
     ports:
-      - 8978:8978
+      - 9030:9030
+      - 8030:8030
+      - 8040:8040
     networks:
       - ndsnet
 
