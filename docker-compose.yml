@@ -25,6 +25,8 @@ services:
   minio:
     image: minio/minio
     container_name: minio
+    env_file:
+      - .env
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -35,8 +37,6 @@ services:
       MINIO_ROOT_USER: ${min_io_admin}
       MINIO_ROOT_PASSWORD: ${min_io_pwd}
       MINIO_BROWSER_REDIRECT_URL: http://localhost/minio/
-      MINIO_ACCESS_KEY: YpWqZwajFbA2GyK68woE
-      MINIO_SECRET_KEY: DvjF0UCZ7KpuBhEeSm08fIZ4xQtD3qNENJL0HhFP
     command: server --console-address ":9001" /data
     networks:
       - ndsnet
@@ -62,17 +62,6 @@ services:
       NB_GID: 1000
       CHOWN_HOME: 'yes'
       CHOWN_HOME_OPTS: '-R'
-    networks:
-      - ndsnet
-
-  trino:
-    ports:
-      - "8080:8080"
-      - "9443:9443"
-    image: "trinodb/trino:latest"
-    volumes:
-      - ./application/trino/etc:/usr/lib/trino/etc:ro
-      - ./application/trino/catalog:/etc/trino/catalog
     networks:
       - ndsnet
 
@@ -143,6 +132,8 @@ services:
       - ndsnet
 
   metabase:
+    env_file:
+      - .env
     volumes:
       - ./application/metabase:/metabase-data
     environment:
@@ -162,12 +153,73 @@ services:
     networks:
       - ndsnet
 
-  starrocks:
-    image: starrocks/allin1-ubuntu:latest
+  starrocks-fe:
+    image: starrocks/fe-ubuntu:3.2-latest
+    env_file:
+      - .env
+    hostname: starrocks-fe
+    container_name: starrocks-fe
+    user: root
+    command:
+      - /bin/bash
+      - -c
+      - |
+        echo "# enable shared data, set storage type, set endpoint" >> /opt/starrocks/fe/conf/fe.conf
+        echo "run_mode = shared_data" >> /opt/starrocks/fe/conf/fe.conf
+        echo "cloud_native_storage_type = S3" >> /opt/starrocks/fe/conf/fe.conf
+        echo "aws_s3_endpoint = ${min_io_url}" >> /opt/starrocks/fe/conf/fe.conf
+
+        echo "# set the path in MinIO" >> /opt/starrocks/fe/conf/fe.conf
+        echo "aws_s3_path = starrocks" >> /opt/starrocks/fe/conf/fe.conf
+
+        echo "# credentials for MinIO object read/write" >> /opt/starrocks/fe/conf/fe.conf
+        echo "aws_s3_access_key = ${min_io_admin}" >> /opt/starrocks/fe/conf/fe.conf
+        echo "aws_s3_secret_key = ${min_io_pwd}" >> /opt/starrocks/fe/conf/fe.conf
+        echo "aws_s3_use_instance_profile = false" >> /opt/starrocks/fe/conf/fe.conf
+        echo "aws_s3_use_aws_sdk_default_behavior = false" >> /opt/starrocks/fe/conf/fe.conf
+
+        echo "# Set this to false if you do not want default" >> /opt/starrocks/fe/conf/fe.conf
+        echo "# storage created in the object storage using" >> /opt/starrocks/fe/conf/fe.conf
+        echo "# the details provided above" >> /opt/starrocks/fe/conf/fe.conf
+        echo "enable_load_volume_from_conf = true" >> /opt/starrocks/fe/conf/fe.conf
+
+        /opt/starrocks/fe/bin/start_fe.sh
     ports:
-      - 9030:9030
       - 8030:8030
+      - 9020:9020
+      - 9030:9030
+    healthcheck:
+      test: 'mysql -u root -h starrocks-fe -P 9030 -e "show frontends\G" |grep "Alive: true"'
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - minio
+    networks:
+      - ndsnet
+
+  starrocks-cn:
+    image: starrocks/cn-ubuntu:3.2-latest
+    command:
+      - /bin/bash
+      - -c
+      - |
+        sleep 15s;
+        mysql --connect-timeout 2 -h starrocks-fe -P9030 -uroot -e "ALTER SYSTEM ADD COMPUTE NODE \"starrocks-cn:9050\";"
+        /opt/starrocks/cn/bin/start_cn.sh
+    ports:
       - 8040:8040
+    hostname: starrocks-cn
+    container_name: starrocks-cn
+    user: root
+    depends_on:
+      - starrocks-fe
+      - minio
+    healthcheck:
+      test: 'mysql -u root -h starrocks-fe -P 9030 -e "SHOW COMPUTE NODES\G" |grep "Alive: true"'
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - ndsnet
 
