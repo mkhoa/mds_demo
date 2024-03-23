@@ -11,7 +11,10 @@ services:
       ENV: ${ENV}
       MINIO_ROOT_USER: ${min_io_admin}
       MINIO_ROOT_PASSWORD: ${min_io_pwd}
+      AWS_KEY_ID: ${aws_s3_access_key}
+      AWS_KEY_SECRET: ${aws_s3_secret}
       MAGE_BASE_PATH: mage
+      REQUIRE_USER_AUTHENTICATION: 1
     ports:
       - 6789:6789
     volumes:
@@ -65,17 +68,6 @@ services:
     networks:
       - ndsnet
 
-  postgres:
-    ports:
-      - "5432:5432"
-    image: postgres:11
-    container_name: postgres
-    environment:
-      POSTGRES_USER: dbt-trino
-      POSTGRES_PASSWORD: dbt-trino
-    networks:
-      - ndsnet
-
   metastore_db:
     image: postgres:11
     hostname: metastore_db
@@ -83,12 +75,16 @@ services:
       POSTGRES_USER: hive
       POSTGRES_PASSWORD: hive
       POSTGRES_DB: metastore
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./database/metastore_db:/var/lib/postgresql/data
     networks:
       - ndsnet
 
   hive-metastore:
     hostname: hive-metastore
-    image: 'starburstdata/hive:3.1.2-e.18'
+    image: 'starburstdata/hive:3.1.3-e.8'
     ports:
       - '9083:9083' # Metastore Thrift
     environment:
@@ -96,7 +92,7 @@ services:
       HIVE_METASTORE_JDBC_URL: jdbc:postgresql://metastore_db:5432/metastore
       HIVE_METASTORE_USER: hive
       HIVE_METASTORE_PASSWORD: hive
-      HIVE_METASTORE_WAREHOUSE_DIR: s3://hive/
+      HIVE_METASTORE_WAREHOUSE_DIR: s3a://hive/
       S3_ENDPOINT: http://minio:9000
       S3_ACCESS_KEY: ${min_io_admin}
       S3_SECRET_KEY: ${min_io_pwd}
@@ -128,6 +124,10 @@ services:
       POSTGRES_USER: ${MB_DB_USER}
       POSTGRES_PASSWORD: ${MB_DB_PASS}
       POSTGRES_DB: ${MB_DB_DBNAME}
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./database/metabase_db:/var/lib/postgresql/data
     networks:
       - ndsnet
 
@@ -150,76 +150,6 @@ services:
     restart: always
     depends_on: 
       - metabase_db
-    networks:
-      - ndsnet
-
-  starrocks-fe:
-    image: starrocks/fe-ubuntu:3.2-latest
-    env_file:
-      - .env
-    hostname: starrocks-fe
-    container_name: starrocks-fe
-    user: root
-    command:
-      - /bin/bash
-      - -c
-      - |
-        echo "# enable shared data, set storage type, set endpoint" >> /opt/starrocks/fe/conf/fe.conf
-        echo "run_mode = shared_data" >> /opt/starrocks/fe/conf/fe.conf
-        echo "cloud_native_storage_type = S3" >> /opt/starrocks/fe/conf/fe.conf
-        echo "aws_s3_endpoint = ${min_io_url}" >> /opt/starrocks/fe/conf/fe.conf
-
-        echo "# set the path in MinIO" >> /opt/starrocks/fe/conf/fe.conf
-        echo "aws_s3_path = starrocks" >> /opt/starrocks/fe/conf/fe.conf
-
-        echo "# credentials for MinIO object read/write" >> /opt/starrocks/fe/conf/fe.conf
-        echo "aws_s3_access_key = ${min_io_admin}" >> /opt/starrocks/fe/conf/fe.conf
-        echo "aws_s3_secret_key = ${min_io_pwd}" >> /opt/starrocks/fe/conf/fe.conf
-        echo "aws_s3_use_instance_profile = false" >> /opt/starrocks/fe/conf/fe.conf
-        echo "aws_s3_use_aws_sdk_default_behavior = false" >> /opt/starrocks/fe/conf/fe.conf
-
-        echo "# Set this to false if you do not want default" >> /opt/starrocks/fe/conf/fe.conf
-        echo "# storage created in the object storage using" >> /opt/starrocks/fe/conf/fe.conf
-        echo "# the details provided above" >> /opt/starrocks/fe/conf/fe.conf
-        echo "enable_load_volume_from_conf = true" >> /opt/starrocks/fe/conf/fe.conf
-
-        /opt/starrocks/fe/bin/start_fe.sh
-    ports:
-      - 8030:8030
-      - 9020:9020
-      - 9030:9030
-    healthcheck:
-      test: 'mysql -u root -h starrocks-fe -P 9030 -e "show frontends\G" |grep "Alive: true"'
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    depends_on:
-      - minio
-    networks:
-      - ndsnet
-
-  starrocks-cn:
-    image: starrocks/cn-ubuntu:3.2-latest
-    command:
-      - /bin/bash
-      - -c
-      - |
-        sleep 15s;
-        mysql --connect-timeout 2 -h starrocks-fe -P9030 -uroot -e "ALTER SYSTEM ADD COMPUTE NODE \"starrocks-cn:9050\";"
-        /opt/starrocks/cn/bin/start_cn.sh
-    ports:
-      - 8040:8040
-    hostname: starrocks-cn
-    container_name: starrocks-cn
-    user: root
-    depends_on:
-      - starrocks-fe
-      - minio
-    healthcheck:
-      test: 'mysql -u root -h starrocks-fe -P 9030 -e "SHOW COMPUTE NODES\G" |grep "Alive: true"'
-      interval: 10s
-      timeout: 5s
-      retries: 3
     networks:
       - ndsnet
 
@@ -264,6 +194,16 @@ services:
     networks:
       - ndsnet
  
+  clickhouse-server:
+    image: clickhouse/clickhouse-server:latest
+    ports:
+      - 8123:8123
+      - 9010:9000
+    volumes:
+      - ./application/clickhouse/etc:/etc/clickhouse-server/
+    networks:
+      - ndsnet
+
 networks:
   ndsnet:
     driver: bridge

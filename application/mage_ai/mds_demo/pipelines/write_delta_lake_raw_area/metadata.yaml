@@ -11,12 +11,12 @@ blocks:
   language: python
   name: get_files_list_from_raw_area
   retry_config: null
-  status: updated
+  status: executed
   timeout: null
   type: data_loader
   upstream_blocks: []
   uuid: get_files_list_from_raw_area
-- all_upstream_blocks_executed: false
+- all_upstream_blocks_executed: true
   color: null
   configuration: {}
   downstream_blocks:
@@ -89,11 +89,10 @@ tags:
 - master_pipeline
 - raw_area
 type: python
-updated_at: '2024-01-21 18:39:37'
 uuid: write_delta_lake_raw_area
 variables:
   bucket: dwhfilesystem
-  folder_path: vn_retailer_data/modern_trade_retailer_location
+  folder_path: meta_demographic_csvs
   src_container: landing_area
   tgt_cointainer: raw_area
 variables_dir: /home/src/mage_data/mds_demo

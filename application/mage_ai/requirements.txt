@@ -8,3 +8,9 @@ selenium
 webdriver-manager
 beautifulsoup4
 googlemaps
+holidays
+duckdb
+awswrangler
+h3
+h3pandas
+geopandas

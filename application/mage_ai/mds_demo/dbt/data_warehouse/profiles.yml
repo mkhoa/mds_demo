@@ -1,0 +1,11 @@
+data_warehouse:
+  outputs:
+    dev:
+      dbname: ''
+      host: ''
+      password: postgres
+      port: 5432
+      schema: public
+      type: postgres
+      user: postgres
+  target: dev

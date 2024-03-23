@@ -12,14 +12,7 @@ def execute_transformer_action(df: DataFrame, *args, **kwargs) -> DataFrame:
     """
     Template code for a transformer block.
 
-    Add more parameters to this function if this block has multiple parent blocks.
-    There should be one parameter for each output variable from each parent block.
-
-    Args:
-        df (DataFrame): Data frame from parent block.
-
-    Returns:
-        DataFrame: Transformed data frame
+    This block will add timestamp_id column to dataframe
     """
 
     return df
