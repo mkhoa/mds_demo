@@ -2,9 +2,13 @@
 .csv
 .xlsx
 .meta
+.zip
+.json
+.jar
 storage/dwhfilesystem/*/*
+application/jupyterlab/data/*
 storage/.minio.sys/*
 .*
 !/.gitignore
 frontend_dist_base_path/
-application/clickhouse/data
+database/
