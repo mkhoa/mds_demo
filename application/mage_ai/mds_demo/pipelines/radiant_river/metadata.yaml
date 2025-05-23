@@ -36,5 +36,5 @@ spark_config: {}
 tags: []
 type: python
 uuid: radiant_river
-variables_dir: /home/src/mage_data/mds_demo
+variables_dir: /root/.mage_data/mds_demo
 widgets: []

@@ -3,9 +3,12 @@ default:
   # Default profile created for data IO access.
   # Add your credentials for the source you use, and delete the rest.
   # AWS - MinIO
-  AWS_ACCESS_KEY_ID: "{{ env_var('AWS_ACCESS_KEY_ID') }}"
-  AWS_SECRET_ACCESS_KEY: "{{ env_var('AWS_SECRET_ACCESS_KEY') }}"
-  # AWS_ENPOINT: ''
+  # AWS_ACCESS_KEY_ID: "{{ env_var('MINIO_ROOT_USER') }}"
+  # AWS_SECRET_ACCESS_KEY: "{{ env_var('MINIO_ROOT_PASSWORD') }}"
+  # AWS_ENDPOINT: "{{ env_var('MINIO_ENDPOINT') }}"
+  AWS_ACCESS_KEY_ID: admin
+  AWS_SECRET_ACCESS_KEY: admin123
+  AWS_ENDPOINT: http://minio:9000
   AWS_REGION: region
   # Azure
   AZURE_CLIENT_ID: "{{ env_var('AZURE_CLIENT_ID') }}"

@@ -1,9 +1,10 @@
 project_type: standalone
 
-variables_dir: ~/.mage_data
-# remote_variables_dir: s3://bucket/path_prefix
-
+variables_dir: ~/mage_data
+remote_variables_dir: s3a://mage/mage_data
 variables_retention_period: '90d'
+cache_block_output_in_memory: true
+run_pipeline_in_one_process: true
 
 emr_config:
 # spark_config:
@@ -41,4 +42,35 @@ features:
   project_platform: true
   command_center: true
 pipelines:
-remote_variables_dir:
+spark_config:
+  # Application name
+  app_name: 'Mage_Spark'
+  # Master URL to connect to
+  # e.g., spark_master: 'spark://host:port', or spark_master: 'yarn'
+  spark_master: 'spark://spark-master:7077'
+  # Executor environment variables
+  # e.g., executor_env: {'PYTHONPATH': '/home/path'}
+  executor_env: {}
+  # Jar files to be uploaded to the cluster and added to the classpath
+  # e.g., spark_jars: ['/home/path/example1.jar']
+  spark_jars: ['/home/src/mds_demo/jars/hadoop-aws-3.3.4.jar', 
+  '/home/src/mds_demo/jars/delta-spark_2.12-3.2.0.jar',
+  '/home/src/mds_demo/jars/aws-java-sdk-bundle-1.12.262.jar'
+  ]
+  # Path where Spark is installed on worker nodes,
+  # e.g. spark_home: '/usr/lib/spark'
+  spark_home: null
+  # List of key-value pairs to be set in SparkConf
+  # e.g., others: {'spark.executor.memory': '4g', 'spark.executor.cores': '2'}
+  others: {
+  'spark.jars.packages': 'io.delta:delta-spark_2.12:3.2.0',
+  'spark.hadoop.fs.s3a.endpoint.region': 'region',
+  'spark.hadoop.fs.s3a.endpoint': 'http://minio:9000',
+  'spark.hadoop.fs.s3a.access.key': 'admin',
+  'spark.hadoop.fs.s3a.secret.key': 'admin123',
+  'spark.hadoop.fs.s3a.path.style.access': true,
+  'spark.hadoop.fs.s3a.aws.credentials.provider': 'org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider',
+  'spark.sql.catalogImplementation': 'hive',
+  'spark.sql.extensions': 'io.delta.sql.DeltaSparkSessionExtension',
+  'spark.sql.catalog.spark_catalog': 'org.apache.spark.sql.delta.catalog.DeltaCatalog'
+  }

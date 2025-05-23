@@ -9,18 +9,17 @@ services:
     environment:
       USER_CODE_PATH: /home/src/${PROJECT_NAME}
       ENV: ${ENV}
-      MINIO_ROOT_USER: ${min_io_admin}
-      MINIO_ROOT_PASSWORD: ${min_io_pwd}
-      AWS_KEY_ID: ${aws_s3_access_key}
-      AWS_KEY_SECRET: ${aws_s3_secret}
+      MINIO_ROOT_USER: ${MINIO_ADMIN}
+      MINIO_ROOT_PASSWORD: ${MINIO_PWD}
+      MINIO_ENDPOINT: ${MINIO_URL}
       MAGE_BASE_PATH: mage
-      REQUIRE_USER_AUTHENTICATION: 1
+      MAGE_DATA_DIR: /home/src/mage_data
+      REQUIRE_USER_AUTHENTICATION: 0
     ports:
       - 6789:6789
     volumes:
       - ./application/mage_ai/:/home/src
-      - ~/.aws:/root/.aws
-      - ~/.mage_data:/root/.mage_data
+      - ./application/mage_ai/aws:/root/.aws
     networks:
       - ndsnet
     restart: on-failure:5
@@ -37,8 +36,8 @@ services:
       - ./storage:/data
       - ./storage/export:/export
     environment:
-      MINIO_ROOT_USER: ${min_io_admin}
-      MINIO_ROOT_PASSWORD: ${min_io_pwd}
+      MINIO_ROOT_USER: ${MINIO_ADMIN}
+      MINIO_ROOT_PASSWORD: ${MINIO_PWD}
       MINIO_BROWSER_REDIRECT_URL: http://localhost/minio/
     command: server --console-address ":9001" /data
     networks:
@@ -93,9 +92,9 @@ services:
       HIVE_METASTORE_USER: hive
       HIVE_METASTORE_PASSWORD: hive
       HIVE_METASTORE_WAREHOUSE_DIR: s3a://hive/
-      S3_ENDPOINT: http://minio:9000
-      S3_ACCESS_KEY: ${min_io_admin}
-      S3_SECRET_KEY: ${min_io_pwd}
+      S3_ENDPOINT: ${MINIO_URL}
+      S3_ACCESS_KEY: ${MINIO_ADMIN}
+      S3_SECRET_KEY: ${MINIO_PWD}
       S3_PATH_STYLE_ACCESS: "true"
       REGION: ""
       GOOGLE_CLOUD_KEY_FILE_PATH: ""
@@ -152,57 +151,131 @@ services:
       - metabase_db
     networks:
       - ndsnet
-
-  cubejs:
-    image: cubejs/cube:latest
+  spark-master:
+    image: docker.io/bitnami/spark:3.5.0-debian-12-r15
+    hostname: spark-master
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - SPARK_USER=spark
     ports:
-      - 4000:4000
+      - '9090:8080'
+      - '7077:7077'
     volumes:
-      - ./application/cube/cubejs/conf:/cube/conf
-    environment:
-      - CUBEJS_CUBESTORE_HOST=cubestore_router
-      - CUBEJS_DEV_MODE=true
+      - ./application/spark_cluster/conf:/opt/bitnami/spark/conf
     networks:
       - ndsnet
-
-  cubestore_router:
-    restart: always
-    image: cubejs/cubestore:latest
+  spark-worker-a:
+    image: docker.io/bitnami/spark:3.5.0-debian-12-r15
     environment:
-      - CUBESTORE_WORKERS=cubestore_worker:10001
-      - CUBESTORE_REMOTE_DIR=/cube/data
-      - CUBESTORE_META_PORT=9999
-      - CUBESTORE_SERVER_NAME=cubestore_router:9999
-    volumes:
-      - ./application/cube/cubestore:/cube/data
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_WORKER_CORES=1
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - SPARK_USER=spark
     networks:
       - ndsnet
- 
-  cubestore_worker:
-    restart: always
-    image: cubejs/cubestore:latest
-    environment:
-      - CUBESTORE_WORKERS=cubestore_worker:10001
-      - CUBESTORE_SERVER_NAME=cubestore_worker:10001
-      - CUBESTORE_WORKER_PORT=10001
-      - CUBESTORE_REMOTE_DIR=/cube/data
-      - CUBESTORE_META_ADDR=cubestore_router:9999
-    volumes:
-      - ./application/cube/cubestore:/cube/data
     depends_on:
-      - cubestore_router
+      - spark-master
+  spark-worker-b:
+    image: docker.io/bitnami/spark:3.5.0-debian-12-r15
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_WORKER_CORES=1
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - SPARK_USER=spark
     networks:
       - ndsnet
+    depends_on:
+      - spark-master
+      
+  # trino:
+  #   ports:
+  #     - "8080:8080"
+  #     - "9443:9443"
+  #   image: "trinodb/trino:latest"
+  #   volumes:
+  #     - ./application/trino/etc:/usr/lib/trino/etc:ro
+  #     - ./application/trino/catalog:/etc/trino/catalog
+  #   networks:
+  #     - ndsnet
+
+  # cloudbeaver:
+  #   image: dbeaver/cloudbeaver:latest
+  #   volumes:
+  #     # optional to persist data locally
+  #     - ./application/cloudbeaver/workspace:/opt/cloudbeaver/workspace
+  #     - ./application/cloudbeaver/conf:/opt/cloudbeaver/conf
+  #   ports:
+  #     - 8978:8978
+  #     - 9030:9030
+  #     - 8030:8030
+  #     - 8040:8040
+  #   networks:
+  #     - ndsnet
+      
+  # cubejs:
+  #   image: cubejs/cube:latest
+  #   ports:
+  #     - 4000:4000
+  #   volumes:
+  #     - ./application/cube/cubejs/conf:/cube/conf
+  #   environment:
+  #     - CUBEJS_CUBESTORE_HOST=cubestore_router
+  #     - CUBEJS_DEV_MODE=true
+  #   networks:
+  #     - ndsnet
+
+  # cubestore_router:
+  #   restart: always
+  #   image: cubejs/cubestore:latest
+  #   environment:
+  #     - CUBESTORE_WORKERS=cubestore_worker:10001
+  #     - CUBESTORE_REMOTE_DIR=/cube/data
+  #     - CUBESTORE_META_PORT=9999
+  #     - CUBESTORE_SERVER_NAME=cubestore_router:9999
+  #   volumes:
+  #     - ./application/cube/cubestore:/cube/data
+  #   networks:
+  #     - ndsnet
  
-  clickhouse-server:
-    image: clickhouse/clickhouse-server:latest
-    ports:
-      - 8123:8123
-      - 9010:9000
-    volumes:
-      - ./application/clickhouse/etc:/etc/clickhouse-server/
-    networks:
-      - ndsnet
+  # cubestore_worker:
+  #   restart: always
+  #   image: cubejs/cubestore:latest
+  #   environment:
+  #     - CUBESTORE_WORKERS=cubestore_worker:10001
+  #     - CUBESTORE_SERVER_NAME=cubestore_worker:10001
+  #     - CUBESTORE_WORKER_PORT=10001
+  #     - CUBESTORE_REMOTE_DIR=/cube/data
+  #     - CUBESTORE_META_ADDR=cubestore_router:9999
+  #   volumes:
+  #     - ./application/cube/cubestore:/cube/data
+  #   depends_on:
+  #     - cubestore_router
+  #   networks:
+  #     - ndsnet
+ 
+  # clickhouse-server:
+  #   image: clickhouse/clickhouse-server:latest
+  #   ports:
+  #     - 8123:8123
+  #     - 9010:9000
+  #   volumes:
+  #     - ./application/clickhouse/etc:/etc/clickhouse-server/
+  #   networks:
+  #     - ndsnet
 
 networks:
   ndsnet:

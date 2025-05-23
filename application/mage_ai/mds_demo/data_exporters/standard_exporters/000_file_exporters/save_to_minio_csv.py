@@ -28,9 +28,9 @@ def export_data(data, **kwargs) -> None:
     timestamp_id = today.strftime("%H%M%S")
 
     config = EnvironmentVariableLoader()
-    MINIO_URL = config.get('min_io_url')
-    MINIO_USER = config.get('min_io_admin')
-    MINIO_KEY = config.get('min_io_pwd')
+    MINIO_URL = config.get('MINIO_ENDPOINT')
+    MINIO_USER = config.get('MINIO_ADMIN')
+    MINIO_KEY = config.get('MINIO_ROOT_PASSWORD')
     
     fsspec.config.conf = {
       "s3":
