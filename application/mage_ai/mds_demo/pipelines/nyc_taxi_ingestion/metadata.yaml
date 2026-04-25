@@ -78,6 +78,8 @@ type: python
 uuid: nyc_taxi_ingestion
 variables:
   ingestion_data: nyc_taxi
+  bucket_name: dwhfilesystem
+  file_format: parquet
   month: 1
   taxi_type: yellow
   year: 2024
