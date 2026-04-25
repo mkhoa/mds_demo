@@ -1,12 +1,12 @@
 # Data files
-.parquet
-.csv
-.xlsx
-.meta
-.zip
-.json
-.jar
-.db
+*.parquet
+*.csv
+*.xlsx
+*.meta
+*.zip
+*.json
+*.jar
+*.db
 
 # Application folder
 storage/dwhfilesystem/*/*
@@ -147,7 +147,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+*.env
 .venv
 env/
 venv/
