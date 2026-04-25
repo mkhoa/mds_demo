@@ -1,11 +1,11 @@
 data_warehouse:
   outputs:
-    dev:
-      dbname: ''
-      host: ''
-      password: postgres
+    prod:
+      dbname: 'warehouse'
+      host: 'warehouse_db'
+      password: warehouse
       port: 5432
       schema: public
       type: postgres
-      user: postgres
-  target: dev
+      user: warehouse
+  target: prod

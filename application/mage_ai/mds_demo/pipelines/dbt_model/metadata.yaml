@@ -1,0 +1,49 @@
+blocks:
+- all_upstream_blocks_executed: true
+  color: null
+  configuration:
+    dbt:
+      command: run
+    dbt_profile_target: prod
+    dbt_project_name: dbt/data_warehouse
+    disable_query_preprocessing: false
+    export_write_policy: append
+    file_source:
+      path: dbts/opaque_music.yaml
+    use_raw_sql: false
+  downstream_blocks: []
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: yaml
+  name: opaque music
+  retry_config: null
+  status: executed
+  timeout: null
+  type: dbt
+  upstream_blocks: []
+  uuid: opaque_music
+cache_block_output_in_memory: false
+callbacks: []
+concurrency_config: {}
+conditionals: []
+created_at: '2026-04-25 20:01:50.650967+00:00'
+data_integration: null
+description: Pipelines to trigger dbt model
+executor_config: {}
+executor_count: 1
+executor_type: null
+extensions: {}
+name: dbt_model
+notification_config: {}
+remote_variables_dir: null
+retry_config: {}
+run_pipeline_in_one_process: false
+settings:
+  triggers: null
+spark_config: {}
+tags: []
+type: python
+uuid: dbt_model
+variables_dir: /home/src/mage_data/mds_demo
+widgets: []

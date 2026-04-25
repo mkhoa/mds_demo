@@ -67,36 +67,45 @@ services:
     networks:
       - ndsnet
 
-  metastore_db:
-    image: postgres:11
-    hostname: metastore_db
+  warehouse_db:
+    build:
+      context: .
+      dockerfile: ./application/warehouse_db/Dockerfile
+    hostname: warehouse_db
     environment:
-      POSTGRES_USER: hive
-      POSTGRES_PASSWORD: hive
-      POSTGRES_DB: metastore
+      POSTGRES_USER: ${WAREHOUSE_DB_USER}
+      POSTGRES_PASSWORD: ${WAREHOUSE_DB_PASS}
+      POSTGRES_DB: ${WAREHOUSE_DB_DBNAME}
     ports:
       - "5432:5432"
     volumes:
-      - ./database/metastore_db:/var/lib/postgresql/data
+      - ./database/warehouse_db:/var/lib/postgresql/data
+      - ./application/warehouse_db/init:/docker-entrypoint-initdb.d
     networks:
       - ndsnet
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${WAREHOUSE_DB_USER} -d ${WAREHOUSE_DB_DBNAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   hive-metastore:
     hostname: hive-metastore
     image: 'starburstdata/hive:3.1.3-e.8'
     ports:
-      - '9083:9083' # Metastore Thrift
+      - '9083:9083'
     environment:
       HIVE_METASTORE_DRIVER: org.postgresql.Driver
-      HIVE_METASTORE_JDBC_URL: jdbc:postgresql://metastore_db:5432/metastore
-      HIVE_METASTORE_USER: hive
-      HIVE_METASTORE_PASSWORD: hive
-      HIVE_METASTORE_WAREHOUSE_DIR: s3a://hive/
+      HIVE_METASTORE_JDBC_URL: jdbc:postgresql://warehouse_db:5432/metastore
+      HIVE_METASTORE_USER: ${WAREHOUSE_DB_USER}
+      HIVE_METASTORE_PASSWORD: ${WAREHOUSE_DB_PASS}
+      HIVE_METASTORE_WAREHOUSE_DIR: s3a://dwhfilesystem/
       S3_ENDPOINT: ${MINIO_URL}
       S3_ACCESS_KEY: ${MINIO_ADMIN}
       S3_SECRET_KEY: ${MINIO_PWD}
       S3_PATH_STYLE_ACCESS: "true"
       REGION: ""
+      HIVE_METASTORE_USERS_IN_ADMIN_ROLE: "admin"
       GOOGLE_CLOUD_KEY_FILE_PATH: ""
       AZURE_ADL_CLIENT_ID: ""
       AZURE_ADL_CREDENTIAL: ""
@@ -110,26 +119,11 @@ services:
       AZURE_ABFS_OAUTH_SECRET: ""
       AZURE_ABFS_OAUTH_ENDPOINT: ""
       AZURE_WASB_ACCESS_KEY: ""
-      HIVE_METASTORE_USERS_IN_ADMIN_ROLE: "admin"
     depends_on:
-      - metastore_db
+      warehouse_db:
+        condition: service_healthy
     networks:
       - ndsnet
-
-  metabase_db:
-    image: postgres:11
-    hostname: metabase_db
-    environment:
-      POSTGRES_USER: ${MB_DB_USER}
-      POSTGRES_PASSWORD: ${MB_DB_PASS}
-      POSTGRES_DB: ${MB_DB_DBNAME}
-    ports:
-      - "5433:5432"
-    volumes:
-      - ./database/metabase_db:/var/lib/postgresql/data
-    networks:
-      - ndsnet
-
   metabase:
     env_file:
       - .env
@@ -137,80 +131,71 @@ services:
       - ./application/metabase:/metabase-data
     environment:
       - MB_DB_TYPE=postgres
-      - MB_DB_HOST=metabase_db
+      - MB_DB_HOST=warehouse_db
       - MB_DB_PORT=5432
       - MB_DB_DBNAME=${MB_DB_DBNAME}
-      - MB_DB_USER=${MB_DB_USER}
-      - MB_DB_PASS=${MB_DB_PASS}
+      - MB_DB_USER=${WAREHOUSE_DB_USER}
+      - MB_DB_PASS=${WAREHOUSE_DB_PASS}
       - MB_SITE_URL=http://localhost/metabase/
     ports:
       - 3000:3000
     image: metabase/metabase
     restart: always
-    depends_on: 
-      - metabase_db
+    depends_on:
+      - warehouse_db
     networks:
       - ndsnet
-  spark-master:
-    image: docker.io/bitnami/spark:3.5.0-debian-12-r15
-    hostname: spark-master
-    environment:
-      - SPARK_MODE=master
-      - SPARK_RPC_AUTHENTICATION_ENABLED=no
-      - SPARK_RPC_ENCRYPTION_ENABLED=no
-      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
-      - SPARK_SSL_ENABLED=no
-      - SPARK_USER=spark
+
+  anything-llm:
+    container_name: anythingllm
+    image: mintplexlabs/anythingllm:pg
     ports:
-      - '9090:8080'
-      - '7077:7077'
+      - "3001:3001"
+    cap_add:
+      - SYS_ADMIN
     volumes:
-      - ./application/spark_cluster/conf:/opt/bitnami/spark/conf
-    networks:
-      - ndsnet
-  spark-worker-a:
-    image: docker.io/bitnami/spark:3.5.0-debian-12-r15
+      - "./application/anythingllm.env:/app/server/.env"
+      - "./data/anythingllm/server/storage:/app/server/storage"
+      - "./data/anythingllm/collector/hotdir/:/app/collector/hotdir"
+      - "./data/anythingllm/collector/outputs/:/app/collector/outputs"
     environment:
-      - SPARK_MODE=worker
-      - SPARK_MASTER_URL=spark://spark-master:7077
-      - SPARK_WORKER_MEMORY=1G
-      - SPARK_WORKER_CORES=1
-      - SPARK_RPC_AUTHENTICATION_ENABLED=no
-      - SPARK_RPC_ENCRYPTION_ENABLED=no
-      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
-      - SPARK_SSL_ENABLED=no
-      - SPARK_USER=spark
+      - SERVER_PORT=${SERVER_PORT}
+      - STORAGE_DIR=${STORAGE_DIR}
+      - JWT_SECRET=${JWT_SECRET}
+      - LLM_PROVIDER=${LLM_PROVIDER}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_LLM_MODEL_PREF=${GEMINI_LLM_MODEL_PREF}
+      - EMBEDDING_ENGINE=${EMBEDDING_ENGINE}
+      - GEMINI_EMBEDDING_API_KEY=${GEMINI_EMBEDDING_API_KEY}
+      - EMBEDDING_MODEL_PREF=${EMBEDDING_MODEL_PREF}
+      - VECTOR_DB=${VECTOR_DB}
+      - DATABASE_URL=${DATABASE_URL}
+      - PGVECTOR_CONNECTION_STRING=${PGVECTOR_CONNECTION_STRING}
+      - PGVECTOR_TABLE_NAME=${PGVECTOR_TABLE_NAME}
+      - AGENT_GSE_KEY=${AGENT_GSE_KEY}
+      - AGENT_GSE_CTX=${AGENT_GSE_CTX}
+    depends_on:
+      warehouse_db:
+        condition: service_healthy
     networks:
       - ndsnet
+  trino:
+    image: "trinodb/trino:latest"
+    hostname: trino
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./application/trino/etc:/usr/lib/trino/etc:ro
+      - ./application/trino/catalog:/etc/trino/catalog
     depends_on:
-      - spark-master
-  spark-worker-b:
-    image: docker.io/bitnami/spark:3.5.0-debian-12-r15
-    environment:
-      - SPARK_MODE=worker
-      - SPARK_MASTER_URL=spark://spark-master:7077
-      - SPARK_WORKER_MEMORY=1G
-      - SPARK_WORKER_CORES=1
-      - SPARK_RPC_AUTHENTICATION_ENABLED=no
-      - SPARK_RPC_ENCRYPTION_ENABLED=no
-      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
-      - SPARK_SSL_ENABLED=no
-      - SPARK_USER=spark
+      warehouse_db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      hive-metastore:
+        condition: service_started
     networks:
       - ndsnet
-    depends_on:
-      - spark-master
-      
-  # trino:
-  #   ports:
-  #     - "8080:8080"
-  #     - "9443:9443"
-  #   image: "trinodb/trino:latest"
-  #   volumes:
-  #     - ./application/trino/etc:/usr/lib/trino/etc:ro
-  #     - ./application/trino/catalog:/etc/trino/catalog
-  #   networks:
-  #     - ndsnet
 
   # cloudbeaver:
   #   image: dbeaver/cloudbeaver:latest

@@ -1,1 +1,3 @@
 vnstock
+dbt-postgres
+dlt

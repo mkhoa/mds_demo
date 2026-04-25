@@ -2,8 +2,10 @@ pandas
 vnstock
 openpyxl
 holidays
-lakehouse-engine
-lakehouse-engine[dq,azure,sftp]
-pyspark==3.5.0
 dbt-core
+jinja2>=3.1.5
+requests
+deltalake
+s3fs
+fsspec
 

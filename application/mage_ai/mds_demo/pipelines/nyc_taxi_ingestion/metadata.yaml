@@ -2,81 +2,84 @@ blocks:
 - all_upstream_blocks_executed: true
   color: null
   configuration:
-    file_path: null
+    file_path: data_loaders/nyc_taxi/load_nyc_taxi.py
   downstream_blocks:
-  - no_transform_blocks
+  - nyc_taxi/transform_nyc_taxi
   executor_config: null
   executor_type: local_python
   has_callback: false
   language: python
-  name: vietnam_stock_finance_data/vndirect_Balance_Sheet_Data
+  name: nyc_taxi/load_nyc_taxi
   retry_config: null
-  status: failed
+  status: updated
   timeout: null
   type: data_loader
   upstream_blocks: []
-  uuid: vietnam_stock_finance_data/vndirect_balance_sheet_data
+  uuid: nyc_taxi/load_nyc_taxi
 - all_upstream_blocks_executed: false
   color: null
   configuration:
-    file_path: null
+    file_path: transformers/nyc_taxi/transform_nyc_taxi.py
   downstream_blocks:
-  - finance_stock_demo/save_to_minio
+  - generic_components/write2landing_block
   executor_config: null
   executor_type: local_python
   has_callback: false
   language: python
-  name: no_transform_blocks
+  name: nyc_taxi/transform_nyc_taxi
   retry_config: null
-  status: executed
+  status: updated
   timeout: null
   type: transformer
   upstream_blocks:
-  - vietnam_stock_finance_data/vndirect_balance_sheet_data
-  uuid: no_transform_blocks
+  - nyc_taxi/load_nyc_taxi
+  uuid: nyc_taxi/transform_nyc_taxi
 - all_upstream_blocks_executed: false
   color: null
   configuration:
-    dynamic: true
-    file_path: null
+    file_source:
+      path: data_exporters/generic_components/write2landing_block.py
   downstream_blocks: []
   executor_config: null
   executor_type: local_python
   has_callback: false
   language: python
-  name: finance_stock_demo/save_to_minio
+  name: generic_components/write2landing_block
   retry_config: null
-  status: failed
+  status: updated
   timeout: null
   type: data_exporter
   upstream_blocks:
-  - no_transform_blocks
-  uuid: finance_stock_demo/save_to_minio
+  - nyc_taxi/transform_nyc_taxi
+  uuid: generic_components/write2landing_block
 cache_block_output_in_memory: false
 callbacks: []
 concurrency_config: {}
 conditionals: []
-created_at: '2023-11-11 08:30:47.168576+00:00'
+created_at: null
 data_integration: null
-description: null
+description: Ingest NYC TLC taxi trip data and write as Delta Lake to MinIO
 executor_config: {}
 executor_count: 1
 executor_type: null
 extensions: {}
-name: balance_sheet_pipeline
+name: nyc_taxi_ingestion
 notification_config: {}
-remote_variables_dir: s3a://mage/mage_data
+remote_variables_dir: null
 retry_config: {}
 run_pipeline_in_one_process: false
 settings:
   triggers: null
 spark_config: {}
 tags:
-- finance_demo
+- nyc_taxi
+- ingestion
 type: python
-uuid: balance_sheet_pipeline
+uuid: nyc_taxi_ingestion
 variables:
-  bucket: dwhfilesystem
-  folder_path: raw_area/vn_finance_project/vn_stock_balance_sheet
+  ingestion_data: nyc_taxi
+  month: 1
+  taxi_type: yellow
+  year: 2024
 variables_dir: /home/src/mage_data/mds_demo
 widgets: []
