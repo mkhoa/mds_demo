@@ -112,3 +112,50 @@ models:
         description: True if day_of_week is 0 (Sun) or 6 (Sat)
       - name: is_current_date
         description: True if date_day = CURRENT_DATE at build time
+
+  - name: dim_ward
+    description: >
+      Vietnamese 2025 ward / commune / township dimension. One row per ma_xa
+      (post-2025 reorganisation: districts removed, wards report directly to
+      provinces). Includes population/area measures and the EPSG:4326 polygon
+      geometry used for spatial joins by dim_division_area, fact_place, and
+      fact_land_feature. Source: stg_vn_gis__new_ward.
+    columns:
+      - name: sk_ward
+        description: Surrogate key — generate_surrogate_key([ma_xa])
+        data_tests:
+          - not_null
+          - unique
+      - name: ma_xa
+        description: Ward / commune code (natural key)
+        data_tests:
+          - not_null
+          - unique
+      - name: ten_xa
+        description: Ward / commune name
+        data_tests:
+          - not_null
+      - name: ma_tinh
+        description: Province code
+        data_tests:
+          - not_null
+      - name: ten_tinh
+        description: Province name
+      - name: loai
+        description: Unit type in Vietnamese (Xã, Phường, Thị trấn)
+      - name: loai_en
+        description: Unit type in English (Commune, Ward, Township)
+      - name: dtich_km2
+        description: Area in km²
+      - name: dan_so
+        description: Population
+      - name: matdo_km2
+        description: Population density (people per km²)
+      - name: centroid_lat
+        description: Centroid latitude (EPSG:4326)
+      - name: centroid_long
+        description: Centroid longitude (EPSG:4326)
+      - name: geometry
+        description: Ward boundary polygon (EPSG:4326), populated via ST_GeomFromGeoJSON
+        data_tests:
+          - not_null
