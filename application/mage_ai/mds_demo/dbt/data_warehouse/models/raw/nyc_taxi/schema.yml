@@ -52,3 +52,5 @@ models:
         description: Congestion surcharge for trips in/through Manhattan south of 96th St
       - name: airport_fee
         description: $1.25 airport fee for pickup at LaGuardia or JFK
+      - name: _filename
+        description: Full S3 path of the source Parquet file

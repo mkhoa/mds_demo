@@ -1,12 +1,37 @@
 {{
     config(
-        materialized = 'view',
-        schema = 'stg'
+        materialized         = 'incremental',
+        incremental_strategy = 'delete+insert',
+        unique_key           = ['vendor_id', 'pickup_datetime', 'pu_location_id', 'do_location_id'],
+        on_schema_change     = 'sync_all_columns',
+        schema               = 'stg'
     )
 }}
 
+/*
+    Incremental strategy:
+      - Full refresh:  reads the raw view (full parquet scan via pg_duckdb).
+      - Incremental:   calls nyc_taxi_typed_scan() with a partition filter built from
+                       the max (year, month, day) already in this table. The filter is
+                       embedded inside the duckdb.query() string so DuckDB applies Hive
+                       partition pruning — only directories at or after the watermark
+                       are opened. The last partition is always re-read to catch late-
+                       arriving files; delete+insert on unique_key handles dedup.
+*/
+
+{% if is_incremental() %}
+    {% set wm = get_partition_watermark(this) %}
+    {% set partition_filter %}(year, month, day) >= ({{ wm.year }}, {{ wm.month }}, {{ wm.day }}){% endset %}
+{% endif %}
+
 WITH source AS (
-    SELECT * FROM {{ ref('raw_nyc_taxi__trips') }}
+
+    {% if is_incremental() %}
+        {{ nyc_taxi_typed_scan(partition_filter) }}
+    {% else %}
+        SELECT * FROM {{ ref('raw_nyc_taxi__trips') }}
+    {% endif %}
+
 ),
 
 cleaned AS (
@@ -24,8 +49,8 @@ cleaned AS (
         dropoff_datetime,
 
         -- measures
-        GREATEST(passenger_count, 0)   AS passenger_count,
-        GREATEST(trip_distance,   0.0) AS trip_distance,
+        GREATEST(passenger_count, 0)        AS passenger_count,
+        GREATEST(trip_distance,   0.0)      AS trip_distance,
         fare_amount,
         extra,
         mta_tax,
@@ -39,7 +64,7 @@ cleaned AS (
         -- flags
         CASE store_and_fwd_flag WHEN 'Y' THEN TRUE ELSE FALSE END AS store_and_fwd_flag,
 
-        -- partition helpers (kept as integers for downstream joins)
+        -- partition helpers (kept for downstream joins and future partition pruning)
         year,
         month,
         day

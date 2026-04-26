@@ -11,3 +11,4 @@ webdriver-manager
 beautifulsoup4
 pycaret
 profet
+earthengine-api

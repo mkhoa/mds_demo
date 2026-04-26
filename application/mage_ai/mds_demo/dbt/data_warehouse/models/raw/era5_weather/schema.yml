@@ -1,0 +1,37 @@
+version: 2
+
+models:
+  - name: raw_era5_weather__locality
+    description: >
+      External view reading ERA5-Land daily weather statistics for Vietnamese
+      localities from MinIO landing area via pg_duckdb. One row per locality per
+      observation date. Source: Mage pipeline vn_era5_weather_bq, which queries
+      BigQuery ST_REGIONSTATS against ECMWF/ERA5_LAND/DAILY_AGGR and Overture Maps
+      division_area (VN locality polygons).
+    columns:
+      - name: location_id
+        description: Overture Maps division_area unique identifier
+      - name: location_name
+        description: Primary name of the locality
+      - name: subtype
+        description: Overture Maps division subtype (always 'locality')
+      - name: observation_date
+        description: Date of the ERA5-Land daily observation
+      - name: avg_temp_c
+        description: Mean 2m air temperature for the locality polygon (°C)
+      - name: max_temp_c
+        description: Maximum 2m air temperature for the locality polygon (°C)
+      - name: precip_mm
+        description: Total precipitation (mm) — ERA5 total_precipitation_sum × 1000
+      - name: wind_speed_ms
+        description: Wind speed at 10m (m/s) — magnitude of u/v component vectors
+      - name: soil_moisture
+        description: Volumetric soil water in layer 1 (m³/m³)
+      - name: year
+        description: Ingestion partition year (from hive path)
+      - name: month
+        description: Ingestion partition month (from hive path)
+      - name: day
+        description: Ingestion partition day (from hive path)
+      - name: _filename
+        description: Full S3 path of the source Parquet file

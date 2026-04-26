@@ -1,0 +1,66 @@
+version: 2
+
+models:
+  - name: raw_vn_gis__old_ward
+    description: >
+      External view reading Vietnam pre-2025 ward/commune administrative boundaries
+      from MinIO (GeoJSON) via pg_duckdb. One row per ward/commune/township unit.
+    columns:
+      - name: ma_xa
+        description: Ward/commune code
+      - name: ten_xa
+        description: Ward/commune name
+      - name: loai
+        description: Unit type (Xã = commune, Phường = ward, Thị trấn = township)
+      - name: cap
+        description: Administrative level code
+      - name: stt
+        description: Sequence number
+      - name: ma_huyen
+        description: District code
+      - name: ten_huyen
+        description: District name
+      - name: ma_tinh
+        description: Province/city code
+      - name: ten_tinh
+        description: Province/city name
+      - name: geometry_json
+        description: Boundary geometry as validated GeoJSON string — DuckDB ST_AsGeoJSON output (MultiPolygon, EPSG:4326)
+      - name: _filename
+        description: Source filename (vn_old_ward.geojson)
+
+  - name: raw_vn_gis__new_ward
+    description: >
+      External view reading Vietnam post-2025 ward/commune administrative boundaries
+      from MinIO (GeoJSON) via pg_duckdb. Reflects the 2025 administrative reorganisation
+      where district level was removed and wards now report directly to province.
+      One row per ward/commune/township unit.
+    columns:
+      - name: ma_xa
+        description: Ward/commune code
+      - name: ten_xa
+        description: Ward/commune name
+      - name: loai
+        description: Unit type (Xã = commune, Phường = ward, Thị trấn = township)
+      - name: cap
+        description: Administrative level code
+      - name: stt
+        description: Sequence number
+      - name: sap_nhap
+        description: Merger history — names of old units that were merged to form this ward
+      - name: tru_so
+        description: Administrative headquarters address
+      - name: dtich_km2
+        description: Area in square kilometres
+      - name: dan_so
+        description: Population count
+      - name: matdo_km2
+        description: Population density (people per km²)
+      - name: ma_tinh
+        description: Province/city code
+      - name: ten_tinh
+        description: Province/city name
+      - name: geometry_json
+        description: Boundary geometry as validated GeoJSON string — DuckDB ST_AsGeoJSON output (MultiPolygon, EPSG:4326)
+      - name: _filename
+        description: Source filename (vn_new_ward.geojson)

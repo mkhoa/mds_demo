@@ -1,0 +1,54 @@
+version: 2
+
+models:
+  - name: stg_vn_weather__daily
+    description: >
+      Staging table for Vietnam historical daily weather data from Open-Meteo.
+      One row per ward per day. Variables scoped to agriculture and crop analysis:
+      temperature, precipitation, solar radiation, wind, and evapotranspiration.
+      Sunshine converted to hours; zero precipitation nullified.
+    columns:
+      - name: date
+        description: Observation date
+        data_tests:
+          - not_null
+      - name: ma_xa
+        description: Ward/commune code
+        data_tests:
+          - not_null
+      - name: ten_xa
+        description: Ward/commune name
+      - name: ma_tinh
+        description: Province/city code
+      - name: ten_tinh
+        description: Province/city name
+      - name: lat
+        description: Centroid latitude of the ward boundary
+      - name: long
+        description: Centroid longitude of the ward boundary
+      - name: year
+        description: Observation year (partition column)
+      - name: month
+        description: Observation month (partition column)
+      - name: day
+        description: Observation day (partition column)
+      - name: weather_code
+        description: WMO weather interpretation code
+      - name: temperature_2m_max
+        description: Maximum daily air temperature at 2m (°C)
+      - name: temperature_2m_min
+        description: Minimum daily air temperature at 2m (°C)
+      - name: temperature_2m_mean
+        description: Mean daily air temperature at 2m (°C)
+      - name: precipitation_sum
+        description: Total daily precipitation (mm; null if zero)
+      - name: rain_sum
+        description: Total daily rainfall (mm; null if zero)
+      - name: sunshine_duration_hours
+        description: Duration of sunshine (hours)
+      - name: shortwave_radiation_sum
+        description: Total daily shortwave solar radiation (MJ/m²)
+      - name: wind_speed_10m_max
+        description: Maximum daily wind speed at 10m (km/h)
+      - name: et0_fao_evapotranspiration
+        description: Reference evapotranspiration per FAO-56 Penman-Monteith (mm)

@@ -1,3 +1,0 @@
-vnstock
-dbt-postgres
-dlt

@@ -1,0 +1,96 @@
+blocks:
+- all_upstream_blocks_executed: true
+  color: null
+  configuration:
+    file_source:
+      path: data_loaders/gee/load_ward_boundaries.py
+  downstream_blocks:
+  - gee/fetch_ndvi_by_ward
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: gee/load_ward_boundaries
+  retry_config: null
+  status: executed
+  timeout: null
+  type: data_loader
+  upstream_blocks: []
+  uuid: gee/load_ward_boundaries
+- all_upstream_blocks_executed: true
+  color: null
+  configuration:
+    file_source:
+      path: transformers/gee/fetch_ndvi_by_ward.py
+  downstream_blocks: []
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: gee/fetch_ndvi_by_ward
+  retry_config: null
+  status: updated
+  timeout: null
+  type: transformer
+  upstream_blocks:
+  - gee/load_ward_boundaries
+  uuid: gee/fetch_ndvi_by_ward
+- all_upstream_blocks_executed: false
+  color: null
+  configuration:
+    file_source:
+      path: data_exporters/generic_components/write2landing_block.py
+  downstream_blocks: []
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: generic_components/write2landing_block
+  retry_config: null
+  status: updated
+  timeout: null
+  type: data_exporter
+  upstream_blocks:
+  - gee/fetch_ndvi_by_ward
+  uuid: generic_components/write2landing_block
+cache_block_output_in_memory: false
+callbacks: []
+concurrency_config: {}
+conditionals: []
+created_at: null
+data_integration: null
+description: 'Fetch NDVI zonal statistics per Vietnamese ward from Google Earth Engine
+  (MODIS/061/MOD13Q1, 16-day composites, 250 m). Ward boundaries are loaded from stg.vn_gis_new_ward,
+  reduced over GEE per province per image date, and written to MinIO as Hive-partitioned
+  parquet. Incremental by default: only dates after the watermark in stg.gee__ndvi
+  are fetched. Run with start_date/end_date for historical backfill.
+
+  Auth: place GEE service account JSON at application/mage_ai/gee_service_account.json
+  before running. '
+executor_config: {}
+executor_count: 1
+executor_type: null
+extensions: {}
+name: gee_ndvi_ingestion
+notification_config: {}
+remote_variables_dir: null
+retry_config: {}
+run_pipeline_in_one_process: false
+settings:
+  triggers: null
+spark_config: {}
+tags:
+- gis
+- ndvi
+- gee
+- vegetation
+type: python
+uuid: gee_ndvi_ingestion
+variables:
+  bucket_name: dwhfilesystem
+  end_date: ''
+  file_format: parquet
+  ingestion_data: gee_ndvi
+  start_date: '2020-01-01'
+variables_dir: /home/src/mage_data/mds_demo
+widgets: []

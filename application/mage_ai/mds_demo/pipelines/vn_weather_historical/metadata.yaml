@@ -1,0 +1,93 @@
+blocks:
+- all_upstream_blocks_executed: true
+  color: null
+  configuration:
+    file_source:
+      path: data_loaders/vn_weather/load_wards_lat_long.py
+  downstream_blocks:
+  - vn_weather/fetch_openmeteo_weather
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: vn_weather/load_wards_lat_long
+  retry_config: null
+  status: updated
+  timeout: null
+  type: data_loader
+  upstream_blocks: []
+  uuid: vn_weather/load_wards_lat_long
+- all_upstream_blocks_executed: false
+  color: null
+  configuration:
+    file_source:
+      path: transformers/vn_weather/fetch_openmeteo_weather.py
+  downstream_blocks:
+  - generic_components/write2landing_block
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: vn_weather/fetch_openmeteo_weather
+  retry_config: null
+  status: updated
+  timeout: null
+  type: transformer
+  upstream_blocks:
+  - vn_weather/load_wards_lat_long
+  uuid: vn_weather/fetch_openmeteo_weather
+- all_upstream_blocks_executed: false
+  color: null
+  configuration:
+    file_source:
+      path: data_exporters/generic_components/write2landing_block.py
+  downstream_blocks: []
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: generic_components/write2landing_block
+  retry_config: null
+  status: executed
+  timeout: null
+  type: data_exporter
+  upstream_blocks:
+  - vn_weather/fetch_openmeteo_weather
+  uuid: generic_components/write2landing_block
+cache_block_output_in_memory: false
+callbacks: []
+concurrency_config: {}
+conditionals: []
+created_at: null
+data_integration: null
+description: 'Extract historical daily weather data from Open-Meteo for every Vietnam
+  ward (post-2025 administrative boundaries). Wards are loaded from stg.vn_gis_new_ward
+  and batched into Open-Meteo Archive API requests. All available daily variables
+  are extracted and saved to MinIO as Parquet.
+
+  '
+executor_config: {}
+executor_count: 1
+executor_type: null
+extensions: {}
+name: vn_weather_historical
+notification_config: {}
+remote_variables_dir: null
+retry_config: {}
+run_pipeline_in_one_process: false
+settings:
+  triggers: null
+spark_config: {}
+tags:
+- weather
+- gis
+- open-meteo
+type: python
+uuid: vn_weather_historical
+variables:
+  bucket_name: dwhfilesystem
+  file_format: parquet
+  historical_days: 365
+  ingestion_data: vn_weather
+variables_dir: /home/src/mage_data/mds_demo
+widgets: []

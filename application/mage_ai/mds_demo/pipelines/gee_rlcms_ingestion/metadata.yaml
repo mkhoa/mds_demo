@@ -1,0 +1,99 @@
+blocks:
+- all_upstream_blocks_executed: true
+  color: null
+  configuration:
+    file_source:
+      path: data_loaders/gee/load_ward_boundaries.py
+  downstream_blocks:
+  - gee/fetch_rlcms_by_ward
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: gee/load_ward_boundaries
+  retry_config: null
+  status: executed
+  timeout: null
+  type: data_loader
+  upstream_blocks: []
+  uuid: gee/load_ward_boundaries
+- all_upstream_blocks_executed: true
+  color: null
+  configuration:
+    file_source:
+      path: transformers/gee/fetch_rlcms_by_ward.py
+  downstream_blocks: []
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: gee/fetch_rlcms_by_ward
+  retry_config: null
+  status: failed
+  timeout: null
+  type: transformer
+  upstream_blocks:
+  - gee/load_ward_boundaries
+  uuid: gee/fetch_rlcms_by_ward
+- all_upstream_blocks_executed: false
+  color: null
+  configuration:
+    file_source:
+      path: data_exporters/generic_components/write2landing_block.py
+  downstream_blocks: []
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: generic_components/write2landing_block
+  retry_config: null
+  status: updated
+  timeout: null
+  type: data_exporter
+  upstream_blocks:
+  - gee/fetch_rlcms_by_ward
+  uuid: generic_components/write2landing_block
+cache_block_output_in_memory: false
+callbacks: []
+concurrency_config: {}
+conditionals: []
+created_at: null
+data_integration: null
+description: 'Fetch SERVIR-Mekong RLCMS annual land-cover classification per Vietnamese
+  ward from Google Earth Engine (30 m resolution). Ward boundaries are loaded from
+  stg.vn_gis_new_ward; a frequency histogram reducer computes pixel counts per class
+  per ward per year. Output is long-format parquet (one row per ward × class) written
+  to MinIO partitioned by year. Incremental by default: only years after the stg.gee__rlcms
+  watermark are fetched.
+
+  Auth: place GEE service account JSON at application/mage_ai/google_service_account.json.
+  Verify the RLCMS collection ID and class codes against the GEE asset catalog before
+  running — collection: projects/servir-mekong/rlcms/landcover. '
+executor_config: {}
+executor_count: 1
+executor_type: null
+extensions: {}
+name: gee_rlcms_ingestion
+notification_config: {}
+remote_variables_dir: null
+retry_config: {}
+run_pipeline_in_one_process: false
+settings:
+  triggers: null
+spark_config: {}
+tags:
+- gis
+- landuse
+- rlcms
+- gee
+- vegetation
+type: python
+uuid: gee_rlcms_ingestion
+variables:
+  bucket_name: dwhfilesystem
+  end_year: ''
+  file_format: parquet
+  ingestion_data: gee_rlcms
+  start_year: 2015
+variables_dir: /home/src/mage_data/mds_demo
+widgets: []

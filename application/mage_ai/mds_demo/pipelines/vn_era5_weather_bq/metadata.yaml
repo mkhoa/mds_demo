@@ -1,0 +1,78 @@
+blocks:
+- all_upstream_blocks_executed: true
+  color: null
+  configuration:
+    file_source:
+      path: data_loaders/era5_weather/load_era5_from_bq.py
+  downstream_blocks:
+  - generic_components/write2landing_block
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: era5_weather/load_era5_from_bq
+  retry_config: null
+  status: updated
+  timeout: null
+  type: data_loader
+  upstream_blocks: []
+  uuid: era5_weather/load_era5_from_bq
+- all_upstream_blocks_executed: false
+  color: null
+  configuration:
+    file_source:
+      path: data_exporters/generic_components/write2landing_block.py
+  downstream_blocks: []
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: generic_components/write2landing_block
+  retry_config: null
+  status: updated
+  timeout: null
+  type: data_exporter
+  upstream_blocks:
+  - era5_weather/load_era5_from_bq
+  uuid: generic_components/write2landing_block
+cache_block_output_in_memory: false
+callbacks: []
+concurrency_config: {}
+conditionals: []
+created_at: null
+data_integration: null
+description: 'Load ERA5-Land daily weather statistics for Vietnamese localities from
+  BigQuery + Earth Engine (ST_REGIONSTATS). Locality polygons sourced from
+  bigquery-public-data.overture_maps.division_area. Incremental by default — resumes
+  from the latest observation_date in stg.era5_weather__locality. Output saved to
+  MinIO landing area as Parquet.
+
+  '
+executor_config: {}
+executor_count: 1
+executor_type: null
+extensions: {}
+name: vn_era5_weather_bq
+notification_config: {}
+remote_variables_dir: null
+retry_config: {}
+run_pipeline_in_one_process: false
+settings:
+  triggers: null
+spark_config: {}
+tags:
+- weather
+- era5
+- bigquery
+- gee
+type: python
+uuid: vn_era5_weather_bq
+variables:
+  bucket_name: dwhfilesystem
+  end_date: ''
+  file_format: parquet
+  ingestion_data: era5_weather
+  max_days: 30
+  start_date: '2020-01-01'
+variables_dir: /home/src/mage_data/mds_demo
+widgets: []

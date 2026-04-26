@@ -9,4 +9,12 @@ requests
 deltalake
 s3fs
 fsspec
+openmeteo-requests
+requests-cache
+retry-requests
+attrs==22.2.0
+cattrs==22.2.0
+earthengine-api
+google-cloud-bigquery
+db-dtypes
 

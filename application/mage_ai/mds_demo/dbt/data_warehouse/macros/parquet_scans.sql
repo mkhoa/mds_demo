@@ -222,3 +222,35 @@ FROM duckdb.query($duckdb$
     {% if partition_filter %}WHERE {{ partition_filter }}{% endif %}
 $duckdb$) AS r
 {% endmacro %}
+
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- ERA5-Land Weather (daily locality stats via BigQuery + ST_REGIONSTATS)
+-- Layout: s3://dwhfilesystem/landing_area/era5_weather/year=Y/month=M/day=D/*.parquet
+-- Source: ECMWF/ERA5_LAND/DAILY_AGGR × bigquery-public-data.overture_maps.division_area
+-- ──────────────────────────────────────────────────────────────────────────────
+{% macro era5_weather_typed_scan(partition_filter='') %}
+SELECT
+    r['location_id']::VARCHAR                AS location_id,
+    r['location_name']::VARCHAR              AS location_name,
+    r['subtype']::VARCHAR                    AS subtype,
+    r['observation_date']::TIMESTAMP         AS observation_date,
+    r['avg_temp_c']::DOUBLE PRECISION        AS avg_temp_c,
+    r['max_temp_c']::DOUBLE PRECISION        AS max_temp_c,
+    r['precip_mm']::DOUBLE PRECISION         AS precip_mm,
+    r['wind_speed_ms']::DOUBLE PRECISION     AS wind_speed_ms,
+    r['soil_moisture']::DOUBLE PRECISION     AS soil_moisture,
+    r['year']::INTEGER                       AS year,
+    r['month']::INTEGER                      AS month,
+    r['day']::INTEGER                        AS day,
+    r['filename']::VARCHAR                   AS _filename
+FROM duckdb.query($duckdb$
+    SELECT *
+    FROM read_parquet(
+        's3://dwhfilesystem/landing_area/era5_weather/**/*.parquet',
+        hive_partitioning = true,
+        filename          = true
+    )
+    {% if partition_filter %}WHERE {{ partition_filter }}{% endif %}
+$duckdb$) AS r
+{% endmacro %}

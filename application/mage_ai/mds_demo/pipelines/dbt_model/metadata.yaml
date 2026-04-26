@@ -40,7 +40,7 @@ blocks:
   language: yaml
   name: dbt run
   retry_config: null
-  status: executed
+  status: failed
   timeout: null
   type: dbt
   upstream_blocks:
@@ -87,7 +87,7 @@ tags:
 type: python
 uuid: dbt_model
 variables:
-  include_schemas: bdh,adl
+  include_schemas: bdh,adl,raw,stg
   metabase_api_key: mb_P8M35f504clu0tq1xRu/wKJ78cRS+D+sQEefgqaKzms=
   metabase_database: Warehouse DB
   metabase_url: http://mds_demo-metabase-1:3000

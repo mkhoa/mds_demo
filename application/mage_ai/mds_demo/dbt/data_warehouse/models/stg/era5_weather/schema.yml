@@ -1,0 +1,36 @@
+version: 2
+
+models:
+  - name: stg_era5_weather__locality
+    description: >
+      Cleaned, typed ERA5-Land daily weather statistics for Vietnamese localities.
+      One row per (observation_date, location_id). Incremental — appends new
+      ingestion partitions only. Source: raw_era5_weather__locality via the
+      vn_era5_weather_bq Mage pipeline.
+    columns:
+      - name: observation_date
+        description: Date of the ERA5-Land daily observation
+      - name: location_id
+        description: Overture Maps division_area unique identifier
+      - name: location_name
+        description: Primary name of the locality
+      - name: subtype
+        description: Overture Maps division subtype (always 'locality')
+      - name: avg_temp_c
+        description: Mean 2m air temperature for the locality polygon (°C)
+      - name: max_temp_c
+        description: Maximum 2m air temperature for the locality polygon (°C)
+      - name: precip_mm
+        description: Total precipitation (mm); NULL when no rain event
+      - name: wind_speed_ms
+        description: Wind speed at 10m (m/s)
+      - name: soil_moisture
+        description: Volumetric soil water in layer 1 (m³/m³)
+      - name: year
+        description: Ingestion partition year
+      - name: month
+        description: Ingestion partition month
+      - name: day
+        description: Ingestion partition day
+      - name: _filename
+        description: Source Parquet file path in MinIO

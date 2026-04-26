@@ -1,0 +1,90 @@
+version: 2
+
+models:
+  - name: stg_vn_gis__old_ward
+    description: >
+      Staging table for Vietnam pre-2025 ward/commune administrative boundaries.
+      Filters records missing key codes or geometry, converts geometry_json to PostGIS
+      geometry, and adds an English unit-type label. One row per ward/commune/township.
+    columns:
+      - name: ma_xa
+        description: Ward/commune code
+        data_tests:
+          - not_null
+          - unique
+      - name: ten_xa
+        description: Ward/commune name
+        data_tests:
+          - not_null
+      - name: ma_huyen
+        description: District code
+      - name: ten_huyen
+        description: District name
+      - name: ma_tinh
+        description: Province/city code
+        data_tests:
+          - not_null
+      - name: ten_tinh
+        description: Province/city name
+      - name: loai
+        description: Unit type in Vietnamese (Xã, Phường, Thị trấn)
+      - name: loai_en
+        description: Unit type in English (Commune, Ward, Township)
+      - name: cap
+        description: Administrative level code
+      - name: stt
+        description: Sequence number
+      - name: geometry_json
+        description: Boundary geometry as validated GeoJSON string (MultiPolygon, EPSG:4326)
+      - name: lat
+        description: Latitude of the ward boundary centroid (EPSG:4326)
+      - name: long
+        description: Longitude of the ward boundary centroid (EPSG:4326)
+
+  - name: stg_vn_gis__new_ward
+    description: >
+      Staging table for Vietnam post-2025 ward/commune administrative boundaries.
+      Reflects the 2025 reorganisation — district level removed, wards report directly
+      to province. Filters invalid records, converts geometry, adds English label,
+      and nullifies zero values for area/population measures.
+      One row per ward/commune/township.
+    columns:
+      - name: ma_xa
+        description: Ward/commune code
+        data_tests:
+          - not_null
+          - unique
+      - name: ten_xa
+        description: Ward/commune name
+        data_tests:
+          - not_null
+      - name: ma_tinh
+        description: Province/city code
+        data_tests:
+          - not_null
+      - name: ten_tinh
+        description: Province/city name
+      - name: loai
+        description: Unit type in Vietnamese (Xã, Phường, Thị trấn)
+      - name: loai_en
+        description: Unit type in English (Commune, Ward, Township)
+      - name: cap
+        description: Administrative level code
+      - name: stt
+        description: Sequence number
+      - name: sap_nhap
+        description: Merger history — names of old units merged to form this ward
+      - name: tru_so
+        description: Administrative headquarters address
+      - name: dtich_km2
+        description: Area in square kilometres (null if zero)
+      - name: dan_so
+        description: Population count (null if zero)
+      - name: matdo_km2
+        description: Population density — people per km² (null if zero)
+      - name: geometry_json
+        description: Boundary geometry as validated GeoJSON string (MultiPolygon, EPSG:4326)
+      - name: lat
+        description: Latitude of the ward boundary centroid (EPSG:4326)
+      - name: long
+        description: Longitude of the ward boundary centroid (EPSG:4326)

@@ -15,11 +15,13 @@ services:
       MAGE_BASE_PATH: mage
       MAGE_DATA_DIR: /home/src/mage_data
       REQUIRE_USER_AUTHENTICATION: 0
+      GOOGLE_APPLICATION_CREDENTIALS: /home/src/google_service_account.json
     ports:
       - 6789:6789
     volumes:
       - ./application/mage_ai/:/home/src
       - ./application/mage_ai/aws:/root/.aws
+      - ./application/mage_ai/google_service_account.json:/home/src/google_service_account.json:ro
     networks:
       - ndsnet
     restart: on-failure:5
