@@ -1,0 +1,27 @@
+version: 2
+
+models:
+  - name: dim_year
+    description: >
+      Year dimension generated from dbt_utils.date_spine, range 2015–2030.
+      One row per calendar year. Reusable across all bdh fact tables for
+      year-level analytics.
+    columns:
+      - name: sk_year
+        description: Surrogate key — generate_surrogate_key([year])
+        data_tests:
+          - not_null
+          - unique
+      - name: year
+        description: Calendar year (2015–2030)
+        data_tests:
+          - not_null
+          - unique
+      - name: year_start_date
+        description: First day of the year (Jan 1)
+      - name: year_end_date
+        description: Last day of the year (Dec 31)
+      - name: is_leap_year
+        description: True if year is a leap year
+      - name: is_current_year
+        description: True if year matches the year of CURRENT_DATE at build time
