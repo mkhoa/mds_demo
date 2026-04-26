@@ -25,3 +25,44 @@ models:
         description: True if year is a leap year
       - name: is_current_year
         description: True if year matches the year of CURRENT_DATE at build time
+
+  - name: dim_month
+    description: >
+      Month dimension generated from dbt_utils.date_spine. One row per (year, month)
+      from 2015-01 to 2030-12. Includes quarter, month name/abbreviation, and a
+      foreign key to dim_year.
+    columns:
+      - name: sk_month
+        description: Surrogate key — generate_surrogate_key([year, month])
+        data_tests:
+          - not_null
+          - unique
+      - name: sk_year
+        description: FK to dim_year
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_year')
+              field: sk_year
+      - name: year
+        description: Calendar year
+        data_tests:
+          - not_null
+      - name: month
+        description: Calendar month (1–12)
+        data_tests:
+          - not_null
+      - name: month_name
+        description: Full month name (January, February, …)
+      - name: month_abbr
+        description: 3-letter month abbreviation (Jan, Feb, …)
+      - name: quarter
+        description: Calendar quarter (1–4)
+      - name: quarter_label
+        description: Quarter label (Q1, Q2, Q3, Q4)
+      - name: month_start_date
+        description: First day of the month
+      - name: month_end_date
+        description: Last day of the month
+      - name: is_current_month
+        description: True if (year, month) matches CURRENT_DATE at build time
