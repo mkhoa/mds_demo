@@ -8,16 +8,32 @@
   no Hive partition pruning occurs. The only way to get real partition pruning is to
   embed the WHERE clause inside the duckdb.query() dollar-quoted string.
 
-  These macros centralise the typed column casts for each domain and accept an
-  optional `partition_filter` argument that is rendered into the DuckDB SQL string.
-  Raw layer views call them with no filter (full scan).
-  Stg incremental models call them with a partition filter built from the watermark,
-  so DuckDB only opens partition directories that satisfy the predicate.
+  Pattern:
+    duckdb_parquet_from(s3_path, partition_filter) — shared boilerplate, returns the
+    FROM fragment. Domain macros call it and define only their column SELECT lists.
 
   Usage:
-    {{ nyc_taxi_typed_scan() }}                         -- full scan
-    {{ nyc_taxi_typed_scan('(year, month, day) >= (2024, 3, 1)') }}  -- pruned
+    {{ nyc_taxi_typed_scan() }}                         -- full scan (raw view)
+    {{ nyc_taxi_typed_scan('(year, month, day) >= (2024, 3, 1)') }}  -- pruned (stg incremental)
 #}
+
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Base: shared DuckDB read_parquet wrapper
+-- All domain macros delegate here for the FROM clause.
+-- ──────────────────────────────────────────────────────────────────────────────
+{% macro duckdb_parquet_from(s3_path, partition_filter='') %}
+duckdb.query($duckdb$
+    SELECT *
+    FROM read_parquet(
+        '{{ s3_path }}',
+        hive_partitioning = true,
+        filename          = true
+    )
+    {% if partition_filter %}WHERE {{ partition_filter }}{% endif %}
+$duckdb$) AS r
+{% endmacro %}
+
 
 -- ──────────────────────────────────────────────────────────────────────────────
 -- NYC Taxi
@@ -49,15 +65,7 @@ SELECT
     r['congestion_surcharge']::DOUBLE PRECISION    AS congestion_surcharge,
     r['airport_fee']::DOUBLE PRECISION             AS airport_fee,
     r['filename']::VARCHAR                         AS _filename
-FROM duckdb.query($duckdb$
-    SELECT *
-    FROM read_parquet(
-        's3://dwhfilesystem/landing_area/nyc_taxi/**/*.parquet',
-        hive_partitioning = true,
-        filename          = true
-    )
-    {% if partition_filter %}WHERE {{ partition_filter }}{% endif %}
-$duckdb$) AS r
+FROM {{ duckdb_parquet_from('s3://dwhfilesystem/landing_area/nyc_taxi/**/*.parquet', partition_filter) }}
 {% endmacro %}
 
 
@@ -88,75 +96,7 @@ SELECT
     r['month']::INTEGER                                  AS month,
     r['day']::INTEGER                                    AS day,
     r['filename']::VARCHAR                               AS _filename
-FROM duckdb.query($duckdb$
-    SELECT *
-    FROM read_parquet(
-        's3://dwhfilesystem/landing_area/vn_weather/**/*.parquet',
-        hive_partitioning = true,
-        filename          = true
-    )
-    {% if partition_filter %}WHERE {{ partition_filter }}{% endif %}
-$duckdb$) AS r
-{% endmacro %}
-
-
--- ──────────────────────────────────────────────────────────────────────────────
--- Overture Maps — Base (land features)
--- Layout: s3://dwhfilesystem/landing_area/overture_maps_base/year=Y/month=M/day=D/*.parquet
--- Source: bigquery-public-data.overture_maps.land, filtered to Vietnam
--- ──────────────────────────────────────────────────────────────────────────────
-{% macro overture_maps_base_typed_scan(partition_filter='') %}
-SELECT
-    r['id']::VARCHAR                 AS id,
-    r['subtype']::VARCHAR            AS subtype,
-    r['class']::VARCHAR              AS class,
-    r['land_name']::VARCHAR          AS land_name,
-    r['latitude']::DOUBLE PRECISION  AS latitude,
-    r['longitude']::DOUBLE PRECISION AS longitude,
-    r['geometry_wkt']::VARCHAR       AS geometry_wkt,
-    r['year']::INTEGER               AS year,
-    r['month']::INTEGER              AS month,
-    r['day']::INTEGER                AS day
-FROM duckdb.query($duckdb$
-    SELECT *
-    FROM read_parquet(
-        's3://dwhfilesystem/landing_area/overture_maps_base/**/*.parquet',
-        hive_partitioning = true,
-        filename          = true
-    )
-    {% if partition_filter %}WHERE {{ partition_filter }}{% endif %}
-$duckdb$) AS r
-{% endmacro %}
-
-
--- ──────────────────────────────────────────────────────────────────────────────
--- Overture Maps — Places (POIs)
--- Layout: s3://dwhfilesystem/landing_area/overture_maps_places/year=Y/month=M/day=D/*.parquet
--- Source: bigquery-public-data.overture_maps.place, filtered to Vietnam
--- ──────────────────────────────────────────────────────────────────────────────
-{% macro overture_maps_places_typed_scan(partition_filter='') %}
-SELECT
-    r['id']::VARCHAR                 AS id,
-    r['place_name']::VARCHAR         AS place_name,
-    r['primary_category']::VARCHAR   AS primary_category,
-    r['address']::VARCHAR            AS address,
-    r['phone']::VARCHAR              AS phone,
-    r['social_link']::VARCHAR        AS social_link,
-    r['latitude']::DOUBLE PRECISION  AS latitude,
-    r['longitude']::DOUBLE PRECISION AS longitude,
-    r['geometry_wkt']::VARCHAR       AS geometry_wkt,
-    r['year']::INTEGER               AS year,
-    r['month']::INTEGER              AS month,
-    r['day']::INTEGER                AS day
-FROM duckdb.query($duckdb$
-    SELECT *
-    FROM read_parquet(
-        's3://dwhfilesystem/landing_area/overture_maps_places/**/*.parquet',
-        hive_partitioning = true,
-        filename          = true
-    )
-    {% if partition_filter %}WHERE {{ partition_filter }}{% endif %}
-$duckdb$) AS r
+FROM {{ duckdb_parquet_from('s3://dwhfilesystem/landing_area/vn_weather/**/*.parquet', partition_filter) }}
 {% endmacro %}
 
 
@@ -180,13 +120,49 @@ SELECT
     r['month']::INTEGER                      AS month,
     r['day']::INTEGER                        AS day,
     r['filename']::VARCHAR                   AS _filename
-FROM duckdb.query($duckdb$
-    SELECT *
-    FROM read_parquet(
-        's3://dwhfilesystem/landing_area/era5_weather/**/*.parquet',
-        hive_partitioning = true,
-        filename          = true
-    )
-    {% if partition_filter %}WHERE {{ partition_filter }}{% endif %}
-$duckdb$) AS r
+FROM {{ duckdb_parquet_from('s3://dwhfilesystem/landing_area/era5_weather/**/*.parquet', partition_filter) }}
+{% endmacro %}
+
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Overture Maps — Base (land features)
+-- Layout: s3://dwhfilesystem/landing_area/overture_maps_base/year=Y/month=M/day=D/*.parquet
+-- Source: bigquery-public-data.overture_maps.land, filtered to Vietnam
+-- ──────────────────────────────────────────────────────────────────────────────
+{% macro overture_maps_base_typed_scan(partition_filter='') %}
+SELECT
+    r['id']::VARCHAR                 AS id,
+    r['subtype']::VARCHAR            AS subtype,
+    r['class']::VARCHAR              AS class,
+    r['land_name']::VARCHAR          AS land_name,
+    r['latitude']::DOUBLE PRECISION  AS latitude,
+    r['longitude']::DOUBLE PRECISION AS longitude,
+    r['geometry_wkt']::VARCHAR       AS geometry_wkt,
+    r['year']::INTEGER               AS year,
+    r['month']::INTEGER              AS month,
+    r['day']::INTEGER                AS day
+FROM {{ duckdb_parquet_from('s3://dwhfilesystem/landing_area/overture_maps_base/**/*.parquet', partition_filter) }}
+{% endmacro %}
+
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Overture Maps — Places (POIs)
+-- Layout: s3://dwhfilesystem/landing_area/overture_maps_places/year=Y/month=M/day=D/*.parquet
+-- Source: bigquery-public-data.overture_maps.place, filtered to Vietnam
+-- ──────────────────────────────────────────────────────────────────────────────
+{% macro overture_maps_places_typed_scan(partition_filter='') %}
+SELECT
+    r['id']::VARCHAR                 AS id,
+    r['place_name']::VARCHAR         AS place_name,
+    r['primary_category']::VARCHAR   AS primary_category,
+    r['address']::VARCHAR            AS address,
+    r['phone']::VARCHAR              AS phone,
+    r['social_link']::VARCHAR        AS social_link,
+    r['latitude']::DOUBLE PRECISION  AS latitude,
+    r['longitude']::DOUBLE PRECISION AS longitude,
+    r['geometry_wkt']::VARCHAR       AS geometry_wkt,
+    r['year']::INTEGER               AS year,
+    r['month']::INTEGER              AS month,
+    r['day']::INTEGER                AS day
+FROM {{ duckdb_parquet_from('s3://dwhfilesystem/landing_area/overture_maps_places/**/*.parquet', partition_filter) }}
 {% endmacro %}
