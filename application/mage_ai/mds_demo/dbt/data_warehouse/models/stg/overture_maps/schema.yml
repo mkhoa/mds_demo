@@ -1,0 +1,74 @@
+version: 2
+
+models:
+  - name: stg_overture_maps__base
+    description: >
+      Bronze staging model for Overture Maps land features in Vietnam.
+      Geometry promoted to PostGIS via ST_GeomFromText(). Rows with null id or
+      geometry filtered. Incrementally loaded using Hive partition watermark.
+    columns:
+      - name: id
+        description: Overture Maps globally unique feature identifier
+        data_tests:
+          - not_null
+          - unique
+      - name: subtype
+        description: High-level land category (e.g., physical, landuse)
+      - name: class
+        description: Specific land class (e.g., forest, grass, national_park)
+      - name: land_name
+        description: Primary name of the land feature
+      - name: latitude
+        description: Centroid latitude
+      - name: longitude
+        description: Centroid longitude
+      - name: geometry
+        description: PostGIS geometry of the land feature polygon
+        data_tests:
+          - not_null
+      - name: year
+        description: Ingest year (Hive partition column)
+      - name: month
+        description: Ingest month (Hive partition column)
+      - name: day
+        description: Ingest day (Hive partition column)
+
+  - name: stg_overture_maps__places
+    description: >
+      Bronze staging model for Overture Maps places (POIs) in Vietnam.
+      Geometry promoted to PostGIS via ST_GeomFromText(). Rows without
+      coordinates filtered. Incrementally loaded using Hive partition watermark.
+    columns:
+      - name: id
+        description: Overture Maps globally unique feature identifier
+        data_tests:
+          - not_null
+          - unique
+      - name: place_name
+        description: Primary name of the place
+      - name: primary_category
+        description: Overture primary category
+      - name: address
+        description: Freeform address string (first entry)
+      - name: phone
+        description: Primary phone number
+      - name: social_link
+        description: Primary social media URL
+      - name: latitude
+        description: Latitude of the place
+        data_tests:
+          - not_null
+      - name: longitude
+        description: Longitude of the place
+        data_tests:
+          - not_null
+      - name: geometry
+        description: PostGIS point geometry
+        data_tests:
+          - not_null
+      - name: year
+        description: Ingest year (Hive partition column)
+      - name: month
+        description: Ingest month (Hive partition column)
+      - name: day
+        description: Ingest day (Hive partition column)
