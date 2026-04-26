@@ -155,7 +155,7 @@ models:
         description: Centroid latitude (EPSG:4326)
       - name: centroid_long
         description: Centroid longitude (EPSG:4326)
-      - name: geometry
-        description: Ward boundary polygon (EPSG:4326), populated via ST_GeomFromGeoJSON
+      - name: geometry_wkt
+        description: Ward boundary polygon as WKT string (EPSG:4326). Converted from source GeoJSON via ST_AsText(ST_GeomFromGeoJSON(...)) at build time. Stored as TEXT for DuckDB/Postgres roundtrip compatibility.
         data_tests:
           - not_null

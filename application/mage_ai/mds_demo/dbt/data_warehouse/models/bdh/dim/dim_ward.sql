@@ -22,5 +22,5 @@ SELECT
     matdo_km2,
     lat                                                   AS centroid_lat,
     long                                                  AS centroid_long,
-    ST_GeomFromGeoJSON(geometry_json)::geometry           AS geometry
+    ST_AsText(ST_GeomFromGeoJSON(geometry_json))          AS geometry_wkt
 FROM source
