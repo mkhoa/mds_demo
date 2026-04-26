@@ -1,0 +1,58 @@
+version: 2
+
+models:
+  - name: raw_overture_maps__base
+    description: >
+      External view reading Overture Maps land features for Vietnam from the MinIO landing
+      area via pg_duckdb. Sourced from bigquery-public-data.overture_maps.land.
+    columns:
+      - name: id
+        description: Overture Maps globally unique feature identifier
+      - name: subtype
+        description: High-level land category (e.g., physical, landuse)
+      - name: class
+        description: Specific land class (e.g., forest, grass, sand, national_park)
+      - name: land_name
+        description: Primary name of the land feature
+      - name: latitude
+        description: Latitude of the feature centroid
+      - name: longitude
+        description: Longitude of the feature centroid
+      - name: geometry_wkt
+        description: Full polygon geometry as WKT string
+      - name: year
+        description: Ingest year (Hive partition column)
+      - name: month
+        description: Ingest month (Hive partition column)
+      - name: day
+        description: Ingest day (Hive partition column)
+
+  - name: raw_overture_maps__places
+    description: >
+      External view reading Overture Maps places (POIs) for Vietnam from the MinIO landing
+      area via pg_duckdb. Sourced from bigquery-public-data.overture_maps.place.
+    columns:
+      - name: id
+        description: Overture Maps globally unique feature identifier
+      - name: place_name
+        description: Primary name of the place
+      - name: primary_category
+        description: Primary Overture Maps category
+      - name: address
+        description: Freeform address string (first address entry)
+      - name: phone
+        description: Primary phone number
+      - name: social_link
+        description: Primary social media URL
+      - name: latitude
+        description: Latitude of the place (point geometry)
+      - name: longitude
+        description: Longitude of the place (point geometry)
+      - name: geometry_wkt
+        description: Point geometry as WKT string
+      - name: year
+        description: Ingest year (Hive partition column)
+      - name: month
+        description: Ingest month (Hive partition column)
+      - name: day
+        description: Ingest day (Hive partition column)
