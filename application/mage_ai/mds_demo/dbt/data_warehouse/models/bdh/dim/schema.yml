@@ -208,3 +208,22 @@ models:
         description: Geodesic km² of intersection with the assigned ward (diagnostic)
       - name: area_overlap_ratio
         description: area_overlap_km2 / total_division_km2 (0–1, diagnostic)
+
+  - name: dim_place_category
+    description: >
+      Place category dimension. One row per distinct primary_category seen in
+      stg_overture_maps__places. category_group is derived as the first
+      dot-delimited segment (e.g. 'eat_and_drink' from 'eat_and_drink.restaurant').
+    columns:
+      - name: sk_place_category
+        description: Surrogate key — generate_surrogate_key([primary_category])
+        data_tests:
+          - not_null
+          - unique
+      - name: primary_category
+        description: Overture primary_category (natural key)
+        data_tests:
+          - not_null
+          - unique
+      - name: category_group
+        description: First dot-delimited segment of primary_category
