@@ -2,84 +2,163 @@
 
 **Date:** 2026-04-26  
 **Status:** Approved  
-**Scope:** Single Mage pipeline loading Overture Maps `base` and `places` themes for Vietnam into the raw/stg dbt layers.
+**Scope:** Single Mage pipeline loading Overture Maps `base` (land features) and `places` (POIs) themes for Vietnam from BigQuery public dataset into the raw/stg dbt layers.
 
 ---
 
 ## 1. Architecture
 
-One Mage pipeline (`overture_maps_ingestion`) with two independent loader blocks — one per theme — feeding into the shared `write2landing_block` exporter. Each theme is an independent DAG branch (parallel execution).
+One Mage pipeline (`overture_maps_ingestion`) with two independent loader blocks — one per theme — feeding into two instances of the shared `write2landing_block` exporter. Both branches run in parallel.
 
 ```
 overture_maps_ingestion
-  ├── load_overture_base  ──────────────┐
-  │                                     ├── write2landing_block (×2 runs)
-  └── load_overture_places ─────────────┘
+  ├── load_overture_base   ──→ write2landing_base   → MinIO overture_maps_base
+  └── load_overture_places ──→ write2landing_places → MinIO overture_maps_places
 ```
 
-Both blocks reuse the existing `generic_components/write2landing_block` exporter unchanged.
+---
+
+## 2. Data Source
+
+**BigQuery public dataset:** `bigquery-public-data.overture_maps.*`
+
+Both loaders use Mage's built-in BigQuery connector (`mage_ai.io.bigquery.BigQuery`) with credentials from `io_config.yaml`. No `overturemaps` Python library required.
+
+**Vietnam spatial filter:** applied via `ST_INTERSECTS` with the country boundary from `bigquery-public-data.overture_maps.division_area` (country = 'VN', subtype = 'country').
 
 ---
 
-## 2. Bounding Box
+## 3. BigQuery Queries
 
-Vietnam filter applied at download time:
+### Places (POIs)
 
-| Parameter | Value |
-|---|---|
-| `lon_min` | 102.14441 |
-| `lat_min` | 8.1790665 |
-| `lon_max` | 114.3337595 |
-| `lat_max` | 23.393395 |
+```sql
+WITH Vietnam_Boundary AS (
+    SELECT geometry AS geom
+    FROM `bigquery-public-data.overture_maps.division_area`
+    WHERE country = 'VN' AND subtype = 'country'
+)
+SELECT
+    p.id,
+    p.names.primary                                     AS place_name,
+    p.categories.primary                                AS primary_category,
+    p.addresses.list[SAFE_OFFSET(0)].element.freeform   AS address,
+    p.phones.list[SAFE_OFFSET(0)].element               AS phone,
+    p.socials.list[SAFE_OFFSET(0)].element              AS social_link,
+    ST_Y(p.geometry)                                    AS latitude,
+    ST_X(p.geometry)                                    AS longitude,
+    ST_ASTEXT(p.geometry)                               AS geometry_wkt
+FROM `bigquery-public-data.overture_maps.place` AS p
+INNER JOIN Vietnam_Boundary AS vn ON ST_INTERSECTS(p.geometry, vn.geom)
+WHERE p.names.primary IS NOT NULL
+```
 
-Passed as pipeline variables and forwarded to the `overturemaps` library via `bbox=(lon_min, lat_min, lon_max, lat_max)`.
+### Base (Land Features)
+
+```sql
+WITH Vietnam_Boundary AS (
+    SELECT geometry AS geom
+    FROM `bigquery-public-data.overture_maps.division_area`
+    WHERE country = 'VN' AND subtype = 'country'
+)
+SELECT
+    l.id,
+    l.subtype,
+    l.class,
+    l.names.primary                     AS land_name,
+    ST_Y(ST_CENTROID(l.geometry))       AS latitude,
+    ST_X(ST_CENTROID(l.geometry))       AS longitude,
+    ST_ASTEXT(l.geometry)               AS geometry_wkt
+FROM `bigquery-public-data.overture_maps.land` AS l
+INNER JOIN Vietnam_Boundary AS vn ON ST_INTERSECTS(l.geometry, vn.geom)
+```
+
+Notes:
+- `LIMIT 5000` removed for production; full Vietnam dataset loaded on each run.
+- `geometry` column converted to WKT string via `ST_ASTEXT()` for parquet storage compatibility and consistent downstream handling.
 
 ---
 
-## 3. Data Loaders
+## 4. Data Loaders
 
 **Files:**
 - `application/mage_ai/mds_demo/data_loaders/overture_maps/load_overture_base.py`
 - `application/mage_ai/mds_demo/data_loaders/overture_maps/load_overture_places.py`
 
 **Pattern:**
-1. Read pipeline variables for bbox and release (optional override).
-2. Call `overturemaps.record_batch_reader(type=<theme_type>, bbox=bbox)` → PyArrow RecordBatchReader.
-3. Read all batches into a PyArrow Table.
-4. Flatten/extract key columns (id, type, subtype, names, geometry, update_time, sources, version, bbox_min/max).
-5. Convert geometry column (WKB binary) → GeoJSON string via `shapely` (`to_geojson()`) — consistent with `vn_gis` pattern.
-6. Convert to pandas DataFrame and return.
+```python
+from mage_ai.io.bigquery import BigQuery
+from mage_ai.io.config import ConfigFileLoader
+from os import path
+from mage_ai.data_preparation.repo_manager import get_repo_path
 
-**Theme types:**
+@data_loader
+def load_data(*args, **kwargs):
+    query = """..."""  # theme-specific BigQuery SQL
+    config_path = path.join(get_repo_path(), 'io_config.yaml')
+    loader = BigQuery.with_config(ConfigFileLoader(config_path, 'default'))
+    return loader.load(query)
+```
 
-| Loader | `overturemaps` type arg | Key output columns |
-|---|---|---|
-| `load_overture_base` | `base` | `id, type, subtype, class, names_primary, geometry_json, update_time, version` |
-| `load_overture_places` | `place` | `id, type, categories_primary, confidence, names_primary, addresses, geometry_json, update_time, version` |
+**Output columns:**
 
-**Geometry:** stored as GeoJSON string column `geometry_json` (VARCHAR) — mirrors `vn_gis` raw pattern, allows `ST_GeomFromGeoJSON()` in dbt stg.
+| Theme | Columns |
+|---|---|
+| `places` | `id, place_name, primary_category, address, phone, social_link, latitude, longitude, geometry_wkt` |
+| `base` | `id, subtype, class, land_name, latitude, longitude, geometry_wkt` |
+
+`geometry_wkt` is a WKT string — converted to PostGIS geometry in dbt stg via `ST_GeomFromText()`.
 
 ---
 
-## 4. Pipeline Variables
+## 5. Pipeline Variables
 
 ```yaml
 variables:
-  bbox_lon_min: 102.14441
-  bbox_lat_min: 8.1790665
-  bbox_lon_max: 114.3337595
-  bbox_lat_max: 23.393395
   bucket_name: dwhfilesystem
   file_format: parquet
-  ingestion_data_base: overture_maps_base
-  ingestion_data_places: overture_maps_places
 ```
 
-Each loader block reads `ingestion_data` from its own local variable override to ensure separate landing paths.
+`ingestion_data` is overridden per-block via `block_settings` (see Section 5b).
 
 ---
 
-## 5. MinIO Landing Paths
+## 5b. Pipeline Block Structure (Mage metadata.yaml)
+
+```yaml
+blocks:
+  - name: overture_maps/load_overture_base
+    type: data_loader
+    upstream_blocks: []
+    downstream_blocks: [write2landing_base]
+
+  - name: generic_components/write2landing_block
+    uuid: write2landing_base
+    block_settings:
+      variables:
+        ingestion_data: overture_maps_base
+    upstream_blocks: [overture_maps/load_overture_base]
+    downstream_blocks: []
+
+  - name: overture_maps/load_overture_places
+    type: data_loader
+    upstream_blocks: []
+    downstream_blocks: [write2landing_places]
+
+  - name: generic_components/write2landing_block
+    uuid: write2landing_places
+    block_settings:
+      variables:
+        ingestion_data: overture_maps_places
+    upstream_blocks: [overture_maps/load_overture_places]
+    downstream_blocks: []
+```
+
+Both branches run in parallel. The `write2landing_block` file is reused unchanged.
+
+---
+
+## 6. MinIO Landing Paths
 
 ```
 s3://dwhfilesystem/landing_area/overture_maps_base/
@@ -93,46 +172,11 @@ Hive-style partitioning handled by `write2landing_block` (unchanged).
 
 ---
 
-## 5b. Pipeline Block Structure (Mage metadata.yaml)
-
-Since both themes share `write2landing_block` but need different `ingestion_data` values, the pipeline references the exporter block **twice** with per-block variable overrides via `block_settings`:
-
-```yaml
-blocks:
-  - name: overture_maps/load_overture_base
-    type: data_loader
-    upstream_blocks: []
-    downstream_blocks: [generic_components/write2landing_base]
-
-  - name: generic_components/write2landing_block
-    uuid: write2landing_base
-    block_settings:
-      variables:
-        ingestion_data: overture_maps_base
-    upstream_blocks: [overture_maps/load_overture_base]
-
-  - name: overture_maps/load_overture_places
-    type: data_loader
-    upstream_blocks: []
-    downstream_blocks: [generic_components/write2landing_places]
-
-  - name: generic_components/write2landing_block
-    uuid: write2landing_places
-    block_settings:
-      variables:
-        ingestion_data: overture_maps_places
-    upstream_blocks: [overture_maps/load_overture_places]
-```
-
-Both branches run in parallel. The `write2landing_block` file is reused unchanged.
-
----
-
-## 6. dbt Models
+## 7. dbt Models
 
 ### Raw views (external, no data copy)
 
-| File | SQL pattern |
+| File | Macro |
 |---|---|
 | `models/raw/overture_maps/raw_overture_maps__base.sql` | `{{ overture_maps_base_typed_scan() }}` |
 | `models/raw/overture_maps/raw_overture_maps__places.sql` | `{{ overture_maps_places_typed_scan() }}` |
@@ -148,24 +192,24 @@ Both: `materialized: view`, `schema: raw`.
 
 Both: `materialized: incremental`, `incremental_strategy: delete+insert`, uses `get_partition_watermark()` macro.
 
-Geometry column promoted to PostGIS: `ST_GeomFromGeoJSON(geometry_json)::geometry AS geometry`.
+Geometry promoted to PostGIS: `ST_GeomFromText(geometry_wkt)::geometry AS geometry`.
 
 ### Macros (added to `macros/parquet_scans.sql`)
 
+**Base scan:**
 ```sql
 {% macro overture_maps_base_typed_scan(partition_filter='') %}
 SELECT
-    r['id']::VARCHAR              AS id,
-    r['type']::VARCHAR            AS type,
-    r['subtype']::VARCHAR         AS subtype,
-    r['class']::VARCHAR           AS class,
-    r['names_primary']::VARCHAR   AS names_primary,
-    r['geometry_json']::VARCHAR   AS geometry_json,
-    r['update_time']::VARCHAR     AS update_time,
-    r['version']::INTEGER         AS version,
-    r['year']::INTEGER            AS year,
-    r['month']::INTEGER           AS month,
-    r['day']::INTEGER             AS day
+    r['id']::VARCHAR          AS id,
+    r['subtype']::VARCHAR     AS subtype,
+    r['class']::VARCHAR       AS class,
+    r['land_name']::VARCHAR   AS land_name,
+    r['latitude']::DOUBLE     AS latitude,
+    r['longitude']::DOUBLE    AS longitude,
+    r['geometry_wkt']::VARCHAR AS geometry_wkt,
+    r['year']::INTEGER        AS year,
+    r['month']::INTEGER       AS month,
+    r['day']::INTEGER         AS day
 FROM duckdb.query($duckdb$
     SELECT * FROM read_parquet(
         's3://dwhfilesystem/landing_area/overture_maps_base/**/*.parquet',
@@ -177,48 +221,74 @@ $duckdb$) AS r
 {% endmacro %}
 ```
 
-Similar macro for `overture_maps_places_typed_scan`.
+**Places scan:**
+```sql
+{% macro overture_maps_places_typed_scan(partition_filter='') %}
+SELECT
+    r['id']::VARCHAR                AS id,
+    r['place_name']::VARCHAR        AS place_name,
+    r['primary_category']::VARCHAR  AS primary_category,
+    r['address']::VARCHAR           AS address,
+    r['phone']::VARCHAR             AS phone,
+    r['social_link']::VARCHAR       AS social_link,
+    r['latitude']::DOUBLE           AS latitude,
+    r['longitude']::DOUBLE          AS longitude,
+    r['geometry_wkt']::VARCHAR      AS geometry_wkt,
+    r['year']::INTEGER              AS year,
+    r['month']::INTEGER             AS month,
+    r['day']::INTEGER               AS day
+FROM duckdb.query($duckdb$
+    SELECT * FROM read_parquet(
+        's3://dwhfilesystem/landing_area/overture_maps_places/**/*.parquet',
+        hive_partitioning = true,
+        filename = true
+    )
+    {% if partition_filter %}WHERE {{ partition_filter }}{% endif %}
+$duckdb$) AS r
+{% endmacro %}
+```
 
 ### Schema YAMLs
 
-`schema.yml` files added for both raw and stg models with column-level descriptions and `not_null` / `unique` tests on `id`.
+`schema.yml` added for both raw and stg models with `not_null` and `unique` tests on `id`.
 
 ---
 
-## 7. Dependencies
+## 8. Dependencies
 
-Add to `application/mage_ai/requirements.txt`:
+Add to `application/mage_ai/requirements.txt` (already present from prior update):
 ```
-overturemaps
-shapely
-pyarrow
+google-cloud-bigquery
+db-dtypes
 ```
 
-`pyarrow` is likely pulled in transitively by `deltalake` but must be listed explicitly. `shapely` and `overturemaps` are not currently present.
+`shapely`, `pyarrow`, and `overturemaps` are **not** required for this approach.
+
+BigQuery credentials must be configured in `io_config.yaml` under `GOOGLE_SERVICE_ACC_CREDS` or equivalent.
 
 ---
 
-## 8. Data Flow Summary
+## 9. Data Flow Summary
 
 ```
-overturemaps library (DuckDB → Overture S3)
-        ↓  bbox filter at source
-    PyArrow Table
-        ↓  geometry WKB → GeoJSON string
-    pandas DataFrame
-        ↓  write2landing_block
+BigQuery public dataset (bigquery-public-data.overture_maps.*)
+        ↓  ST_INTERSECTS with Vietnam boundary (server-side spatial filter)
+    Mage BigQuery loader → pandas DataFrame
+        ↓  geometry as WKT string (ST_ASTEXT)
+    write2landing_block
+        ↓
 s3://dwhfilesystem/landing_area/overture_maps_{theme}/year=Y/month=M/day=D/
-        ↓  pg_duckdb external view
+        ↓  pg_duckdb external view + typed scan macro
     raw.overture_maps__base / raw.overture_maps__places
-        ↓  dbt incremental + partition watermark
+        ↓  dbt incremental + partition watermark + ST_GeomFromText()
     stg.overture_maps__base / stg.overture_maps__places
 ```
 
 ---
 
-## 9. Out of Scope
+## 10. Out of Scope
 
 - `bdh` / `adl` layer models (to be added when downstream use case is defined)
-- Mage schedule trigger (to be configured separately by user)
-- H3 spatial indexing (future enhancement)
+- Mage schedule trigger (to be configured separately)
 - Other Overture themes (buildings, transportation, divisions, addresses)
+- `land_use`, `land_cover`, `water`, `infrastructure` subtables from the base theme (only `land` table queried)
