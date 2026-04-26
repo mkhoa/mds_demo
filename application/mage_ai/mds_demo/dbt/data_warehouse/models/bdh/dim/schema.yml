@@ -227,3 +227,22 @@ models:
           - unique
       - name: category_group
         description: First dot-delimited segment of primary_category
+
+  - name: dim_land_class
+    description: >
+      Land class dimension. One row per distinct (subtype, class) seen in
+      stg_overture_maps__base. e.g. ('physical', 'forest'), ('landuse', 'national_park').
+    columns:
+      - name: sk_land_class
+        description: Surrogate key — generate_surrogate_key([subtype, class])
+        data_tests:
+          - not_null
+          - unique
+      - name: subtype
+        description: Overture land subtype (e.g., physical, landuse)
+        data_tests:
+          - not_null
+      - name: class
+        description: Overture land class (e.g., forest, national_park)
+        data_tests:
+          - not_null
