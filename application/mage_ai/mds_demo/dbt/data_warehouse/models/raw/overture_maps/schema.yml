@@ -56,3 +56,34 @@ models:
         description: Ingest month (Hive partition column)
       - name: day
         description: Ingest day (Hive partition column)
+
+  - name: raw_overture_maps__division_area
+    description: >
+      External view reading Overture Maps division_area polygons for Vietnam from
+      the MinIO landing area via pg_duckdb. Sourced from
+      bigquery-public-data.overture_maps.division_area (country='VN'). Used
+      downstream as the spatial bridge between era5 location_id and Vietnamese
+      ma_xa (see bdh dim_division_area).
+    columns:
+      - name: id
+        description: Overture Maps globally unique division_area identifier
+      - name: subtype
+        description: Division subtype (country, region, county, locality, …)
+      - name: location_name
+        description: Primary name (Overture names.primary)
+      - name: country
+        description: ISO country code (always 'VN')
+      - name: region
+        description: ISO region code (e.g., VN-SG)
+      - name: latitude
+        description: Centroid latitude
+      - name: longitude
+        description: Centroid longitude
+      - name: geometry_wkt
+        description: Full division polygon as WKT string
+      - name: year
+        description: Ingest year (Hive partition column)
+      - name: month
+        description: Ingest month (Hive partition column)
+      - name: day
+        description: Ingest day (Hive partition column)
