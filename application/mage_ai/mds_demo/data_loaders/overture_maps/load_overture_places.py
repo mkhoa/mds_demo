@@ -1,5 +1,5 @@
 import pandas as pd
-from os import path
+from google.cloud import bigquery
 
 if 'data_loader' not in globals():
     from mage_ai.data_preparation.decorators import data_loader
@@ -13,11 +13,8 @@ def load_data(*args, **kwargs) -> pd.DataFrame:
     Load Overture Maps places (POIs) for Vietnam from BigQuery public dataset.
     Uses ST_INTERSECTS with the Vietnam country boundary for spatial filtering.
     Geometry is serialised as WKT string for parquet storage.
+    Auth via GOOGLE_APPLICATION_CREDENTIALS env var (service account JSON mounted in container).
     """
-    from mage_ai.io.bigquery import BigQuery
-    from mage_ai.io.config import ConfigFileLoader
-    from mage_ai.data_preparation.repo_manager import get_repo_path
-
     query = """
 WITH Vietnam_Boundary AS (
     SELECT geometry AS geom
@@ -39,8 +36,8 @@ INNER JOIN Vietnam_Boundary AS vn ON ST_INTERSECTS(p.geometry, vn.geom)
 WHERE p.names.primary IS NOT NULL
 """
 
-    config_path = path.join(get_repo_path(), 'io_config.yaml')
-    df = BigQuery.with_config(ConfigFileLoader(config_path, 'default')).load(query)
+    client = bigquery.Client()
+    df = client.query(query).to_dataframe()
     print(f"Loaded {len(df):,} places for Vietnam.")
     return df
 
