@@ -66,3 +66,49 @@ models:
         description: Last day of the month
       - name: is_current_month
         description: True if (year, month) matches CURRENT_DATE at build time
+
+  - name: dim_date
+    description: >
+      Daily date dimension generated from dbt_utils.date_spine, range 2015-01-01
+      to 2030-12-31 (inclusive). One row per calendar day with FKs to dim_month
+      and dim_year. day_of_week uses 0=Sunday convention to match the existing
+      bdh_nyc_taxi__trips.pickup_dow column.
+    columns:
+      - name: sk_date
+        description: Surrogate key — generate_surrogate_key([date_day])
+        data_tests:
+          - not_null
+          - unique
+      - name: sk_month
+        description: FK to dim_month
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_month')
+              field: sk_month
+      - name: sk_year
+        description: FK to dim_year
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_year')
+              field: sk_year
+      - name: date_day
+        description: Calendar date (DATE), natural key
+        data_tests:
+          - not_null
+          - unique
+      - name: day_of_month
+        description: Day of month (1–31)
+      - name: day_of_week
+        description: Day of week (0=Sunday, 6=Saturday)
+      - name: day_of_week_name
+        description: Full day name (Sunday, Monday, …)
+      - name: day_of_year
+        description: Day of year (1–366)
+      - name: week_of_year
+        description: ISO week number
+      - name: is_weekend
+        description: True if day_of_week is 0 (Sun) or 6 (Sat)
+      - name: is_current_date
+        description: True if date_day = CURRENT_DATE at build time
