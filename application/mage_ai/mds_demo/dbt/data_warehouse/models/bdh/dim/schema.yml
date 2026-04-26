@@ -159,3 +159,52 @@ models:
         description: Ward boundary polygon as WKT string (EPSG:4326). Converted from source GeoJSON via ST_AsText(ST_GeomFromGeoJSON(...)) at build time. Stored as TEXT for DuckDB/Postgres roundtrip compatibility.
         data_tests:
           - not_null
+
+  - name: dim_division_area
+    description: >
+      Overture division_area dimension for Vietnam. One row per division_area
+      with the ma_xa it overlaps most (largest geodesic intersection area via
+      DuckDB ST_Area_Spheroid with ST_FlipCoordinates workaround). This is the
+      spatial bridge era5 weather uses to reach Vietnamese ward boundaries.
+      division_areas with no ward overlap are excluded. Source:
+      stg_overture_maps__division_area + dim_ward.
+    columns:
+      - name: sk_division_area
+        description: Surrogate key — generate_surrogate_key([division_area_id])
+        data_tests:
+          - not_null
+          - unique
+      - name: division_area_id
+        description: Overture division_area id (natural key)
+        data_tests:
+          - not_null
+          - unique
+      - name: subtype
+        description: Division subtype
+      - name: location_name
+        description: Primary name
+      - name: country
+        description: ISO country code (always 'VN')
+      - name: region
+        description: ISO region code
+      - name: centroid_lat
+        description: Centroid latitude
+      - name: centroid_long
+        description: Centroid longitude
+      - name: geometry_wkt
+        description: Division polygon as WKT string (EPSG:4326)
+      - name: sk_ward
+        description: FK to dim_ward — the largest-overlap winner
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_ward')
+              field: sk_ward
+      - name: ma_xa
+        description: Denormalised natural key of the assigned ward
+        data_tests:
+          - not_null
+      - name: area_overlap_km2
+        description: Geodesic km² of intersection with the assigned ward (diagnostic)
+      - name: area_overlap_ratio
+        description: area_overlap_km2 / total_division_km2 (0–1, diagnostic)
