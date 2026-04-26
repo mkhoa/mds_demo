@@ -1,0 +1,56 @@
+version: 2
+
+models:
+  - name: fact_place
+    description: >
+      Overture places (POIs) fact. One row per place_id (deduplicated from
+      stg_overture_maps__places by latest year/month/day partition). sk_ward is
+      assigned via point-in-polygon (ST_Within) — places outside any ward
+      polygon get sk_ward = NULL. sk_date_ingested derives from the (year,
+      month, day) ingestion partition of the latest dedup'd row.
+    columns:
+      - name: sk_place
+        description: Surrogate key — generate_surrogate_key([place_id])
+        data_tests:
+          - not_null
+          - unique
+      - name: sk_ward
+        description: FK to dim_ward (nullable)
+        data_tests:
+          - relationships:
+              to: ref('dim_ward')
+              field: sk_ward
+              where: "sk_ward IS NOT NULL"
+      - name: sk_place_category
+        description: FK to dim_place_category
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_place_category')
+              field: sk_place_category
+      - name: sk_date_ingested
+        description: FK to dim_date — the ingestion date derived from year/month/day partition
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_date')
+              field: sk_date
+      - name: place_id
+        description: Overture place id (natural key)
+        data_tests:
+          - not_null
+          - unique
+      - name: place_name
+        description: Place primary name
+      - name: address
+        description: Freeform address
+      - name: phone
+        description: Primary phone number
+      - name: social_link
+        description: Primary social media URL
+      - name: latitude
+        description: Place latitude
+      - name: longitude
+        description: Place longitude
+      - name: geometry_wkt
+        description: Place point geometry as WKT string (EPSG:4326)
