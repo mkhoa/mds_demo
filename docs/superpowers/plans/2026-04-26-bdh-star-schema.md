@@ -1681,15 +1681,34 @@ Write `application/mage_ai/mds_demo/dbt/data_warehouse/models/bdh/overture_maps/
     not need ST_FlipCoordinates because it's a topological predicate (no
     geodesy involved). Places outside any ward polygon get sk_ward = NULL via
     LEFT JOIN.
+
+    Dedup note: stg_overture_maps__places carries pre-existing duplicate ids
+    from multiple ingestion runs. We pick the latest partition per id with
+    ROW_NUMBER() inside both the duckdb.query() block and the outer Postgres
+    CTEs so the fact has one row per place_id.
+
+    duckdb.query() returns a single record column 'r'; columns must be
+    extracted via r['col']::type.
 */
 
 WITH place_with_ward AS (
-    SELECT * FROM duckdb.query($duckdb$
-        WITH places AS (
+    SELECT
+        (r['place_id'])::text  AS place_id,
+        (r['sk_ward'])::text   AS sk_ward
+    FROM duckdb.query($duckdb$
+        WITH places_raw AS (
             SELECT
                 id AS place_id,
-                ST_GeomFromText(geometry_wkt) AS geom
+                ST_GeomFromText(geometry_wkt) AS geom,
+                year, month, day,
+                ROW_NUMBER() OVER (
+                    PARTITION BY id
+                    ORDER BY year DESC, month DESC, day DESC
+                ) AS rn
             FROM pgduckdb.stg.overture_maps_places
+        ),
+        places AS (
+            SELECT place_id, geom FROM places_raw WHERE rn = 1
         ),
         wards AS (
             SELECT
@@ -1706,7 +1725,7 @@ WITH place_with_ward AS (
     $duckdb$) AS r
 ),
 
-places AS (
+places_raw AS (
     SELECT
         id              AS place_id,
         place_name,
@@ -1719,8 +1738,16 @@ places AS (
         geometry_wkt,
         year,
         month,
-        day
+        day,
+        ROW_NUMBER() OVER (
+            PARTITION BY id
+            ORDER BY year DESC, month DESC, day DESC
+        ) AS rn
     FROM {{ ref('stg_overture_maps__places') }}
+),
+
+places AS (
+    SELECT * FROM places_raw WHERE rn = 1
 ),
 
 categories AS (
@@ -1863,11 +1890,31 @@ Write `application/mage_ai/mds_demo/dbt/data_warehouse/models/bdh/overture_maps/
     Spatial work runs inside duckdb.query() to avoid BLOB roundtrip. Area uses
     ST_Area_Spheroid(ST_FlipCoordinates(...)) — workaround for the DuckDB v1.4.3
     bug where ST_Area_Spheroid returns NaN at longitudes >= 90°.
+
+    Dedup note: stg_overture_maps__base carries pre-existing duplicate ids from
+    multiple ingestion runs. We pick the latest partition per id via
+    ROW_NUMBER() before the spatial intersection so we don't multiply dupes by
+    every ward overlap.
+
+    duckdb.query() returns a single record column 'r'; columns must be
+    extracted via r['col']::type.
 */
 
 WITH intersected AS (
-    SELECT * FROM duckdb.query($duckdb$
-        WITH land AS (
+    SELECT
+        (r['land_feature_id'])::text             AS land_feature_id,
+        (r['subtype'])::text                     AS subtype,
+        (r['class'])::text                       AS class,
+        (r['land_name'])::text                   AS land_name,
+        (r['year'])::int                         AS year,
+        (r['month'])::int                        AS month,
+        (r['day'])::int                          AS day,
+        (r['sk_ward'])::text                     AS sk_ward,
+        (r['ma_xa'])::text                       AS ma_xa,
+        (r['area_km2_in_ward'])::double precision AS area_km2_in_ward,
+        (r['area_km2_total'])::double precision   AS area_km2_total
+    FROM duckdb.query($duckdb$
+        WITH land_raw AS (
             SELECT
                 id AS land_feature_id,
                 subtype,
@@ -1876,8 +1923,15 @@ WITH intersected AS (
                 year,
                 month,
                 day,
-                ST_GeomFromText(geometry_wkt) AS geom
+                ST_GeomFromText(geometry_wkt) AS geom,
+                ROW_NUMBER() OVER (
+                    PARTITION BY id
+                    ORDER BY year DESC, month DESC, day DESC
+                ) AS rn
             FROM pgduckdb.stg.overture_maps_base
+        ),
+        land AS (
+            SELECT * FROM land_raw WHERE rn = 1
         ),
         wards AS (
             SELECT
