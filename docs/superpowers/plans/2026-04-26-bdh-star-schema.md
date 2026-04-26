@@ -412,8 +412,8 @@ Append to `application/mage_ai/mds_demo/dbt/data_warehouse/models/stg/overture_m
         description: Centroid latitude
       - name: longitude
         description: Centroid longitude
-      - name: geometry
-        description: Division polygon (EPSG:4326), populated via ST_GeomFromText(geometry_wkt)
+      - name: geometry_wkt
+        description: Division polygon as WKT string (EPSG:4326). Stored as TEXT to avoid the BLOB roundtrip issue with DuckDB GEOMETRY persistence.
         data_tests:
           - not_null
       - name: year
@@ -471,7 +471,7 @@ cleaned AS (
         region,
         latitude,
         longitude,
-        ST_GeomFromText(geometry_wkt)::geometry  AS geometry,
+        geometry_wkt,                          -- TEXT; spatial-using models parse via ST_GeomFromText inside duckdb.query()
         year,
         month,
         day
@@ -501,6 +501,103 @@ git add application/mage_ai/mds_demo/dbt/data_warehouse/models/stg/overture_maps
         application/mage_ai/mds_demo/dbt/data_warehouse/models/stg/overture_maps/schema.yml
 git commit -m "feat: add stg_overture_maps__division_area dbt model"
 ```
+
+---
+
+## Task 4a: Migrate pre-existing stg models to WKT geometry
+
+**Why:** Before Task 9 can run a spatial join, every input must expose geometry as `geometry_wkt TEXT`. `stg_overture_maps__base` and `stg_overture_maps__places` were built earlier (pre-plan) with `geometry GEOMETRY` columns that materialise as DuckDB-internal BLOB and can't be cast back to GEOMETRY in any later query. We swap them to WKT TEXT.
+
+**Files:**
+- Modify: `application/mage_ai/mds_demo/dbt/data_warehouse/models/stg/overture_maps/stg_overture_maps__base.sql`
+- Modify: `application/mage_ai/mds_demo/dbt/data_warehouse/models/stg/overture_maps/stg_overture_maps__places.sql`
+- Modify: `application/mage_ai/mds_demo/dbt/data_warehouse/models/stg/overture_maps/schema.yml`
+
+- [ ] **Step 4a.1: Update `stg_overture_maps__base.sql` cleaned CTE**
+
+Replace the `cleaned` CTE so geometry stays as WKT TEXT instead of being parsed into a BLOB GEOMETRY:
+
+```sql
+cleaned AS (
+    SELECT
+        id,
+        subtype,
+        class,
+        land_name,
+        latitude,
+        longitude,
+        geometry_wkt,                          -- TEXT; spatial-using models parse via ST_GeomFromText inside duckdb.query()
+        year,
+        month,
+        day
+    FROM source
+    WHERE id           IS NOT NULL
+      AND geometry_wkt IS NOT NULL
+)
+```
+
+- [ ] **Step 4a.2: Update `stg_overture_maps__places.sql` cleaned CTE**
+
+```sql
+cleaned AS (
+    SELECT
+        id,
+        place_name,
+        primary_category,
+        address,
+        phone,
+        social_link,
+        latitude,
+        longitude,
+        geometry_wkt,                          -- TEXT; spatial-using models parse via ST_GeomFromText inside duckdb.query()
+        year,
+        month,
+        day
+    FROM source
+    WHERE id        IS NOT NULL
+      AND latitude  IS NOT NULL
+      AND longitude IS NOT NULL
+)
+```
+
+- [ ] **Step 4a.3: Update schema.yml — replace `geometry` column entries**
+
+In `application/mage_ai/mds_demo/dbt/data_warehouse/models/stg/overture_maps/schema.yml`, for both `stg_overture_maps__base` and `stg_overture_maps__places`, replace the `geometry` column entry with:
+
+```yaml
+      - name: geometry_wkt
+        description: Polygon (base) or point (places) as WKT string (EPSG:4326). Stored as TEXT to avoid the DuckDB GEOMETRY-as-BLOB roundtrip issue.
+        data_tests:
+          - not_null
+```
+
+- [ ] **Step 4a.4: Full-refresh rebuild (column type changed from GEOMETRY to TEXT)**
+
+```bash
+docker compose exec magic bash -lc \
+  'cd /home/src/mds_demo/dbt/data_warehouse && dbt build --select stg_overture_maps__base stg_overture_maps__places --full-refresh'
+```
+
+Expected: both models rebuild; tests PASS. Verify the new column type:
+
+```bash
+docker compose exec warehouse_db psql -U warehouse -d warehouse -c \
+  "SELECT pg_typeof(geometry_wkt) FROM stg.overture_maps_base LIMIT 1;
+   SELECT pg_typeof(geometry_wkt) FROM stg.overture_maps_places LIMIT 1;"
+```
+
+Expected: `text` (twice).
+
+- [ ] **Step 4a.5: Same migration for `stg_overture_maps__division_area`** (committed in Task 4 with BLOB geometry — replace its `cleaned` CTE the same way: drop the `ST_GeomFromText(...)::geometry AS geometry` line, keep `geometry_wkt` as TEXT). Update its schema.yml entry: `geometry` → `geometry_wkt`. Re-run `dbt build --select stg_overture_maps__division_area --full-refresh`.
+
+- [ ] **Step 4a.6: Commit**
+
+```bash
+git add application/mage_ai/mds_demo/dbt/data_warehouse/models/stg/overture_maps/
+git commit -m "refactor: store overture_maps stg geometry as WKT TEXT (DuckDB BLOB roundtrip workaround)"
+```
+
+(Do NOT push.)
 
 ---
 
@@ -931,8 +1028,8 @@ Append to `application/mage_ai/mds_demo/dbt/data_warehouse/models/bdh/dim/schema
         description: Centroid latitude (EPSG:4326)
       - name: centroid_long
         description: Centroid longitude (EPSG:4326)
-      - name: geometry
-        description: Ward boundary polygon (EPSG:4326), populated via ST_GeomFromGeoJSON
+      - name: geometry_wkt
+        description: Ward boundary polygon as WKT string (EPSG:4326). Converted from source GeoJSON via ST_AsText(ST_GeomFromGeoJSON(...)) at build time. Stored as TEXT for DuckDB/Postgres roundtrip compatibility.
         data_tests:
           - not_null
 ```
@@ -966,7 +1063,7 @@ SELECT
     matdo_km2,
     lat                                                   AS centroid_lat,
     long                                                  AS centroid_long,
-    ST_GeomFromGeoJSON(geometry_json)::geometry           AS geometry
+    ST_AsText(ST_GeomFromGeoJSON(geometry_json))          AS geometry_wkt   -- WKT TEXT (avoids BLOB roundtrip)
 FROM source
 ```
 
@@ -1041,8 +1138,8 @@ Append to `application/mage_ai/mds_demo/dbt/data_warehouse/models/bdh/dim/schema
         description: Centroid latitude
       - name: centroid_long
         description: Centroid longitude
-      - name: geometry
-        description: Division polygon (EPSG:4326)
+      - name: geometry_wkt
+        description: Division polygon as WKT string (EPSG:4326)
       - name: sk_ward
         description: FK to dim_ward — the largest-overlap winner
         data_tests:
@@ -1074,11 +1171,62 @@ Write `application/mage_ai/mds_demo/dbt/data_warehouse/models/bdh/dim/dim_divisi
 
 /*
     For each Overture division_area, find the dim_ward with the largest geodesic
-    overlap (ST_Area_Spheroid via DuckDB spatial). Returns one row per division
-    that intersects at least one ward.
+    overlap. Spatial work runs inside duckdb.query() because:
+      - DuckDB GEOMETRY persists to Postgres as opaque BLOB; we keep WKT text
+        and parse on entry with ST_GeomFromText.
+      - DuckDB v1.4.3 ST_Area_Spheroid returns NaN for longitudes >= 90°. We
+        wrap with ST_FlipCoordinates to swap (lon,lat) → (lat,lon), which the
+        function consumes correctly.
+    Returns one row per division that intersects at least one ward.
 */
 
-WITH division AS (
+WITH assigned AS (
+    SELECT * FROM duckdb.query($duckdb$
+        WITH division AS (
+            SELECT
+                id            AS division_area_id,
+                ST_GeomFromText(geometry_wkt) AS geom
+            FROM pgduckdb.stg.overture_maps_division_area
+        ),
+        wards AS (
+            SELECT
+                sk_ward,
+                ma_xa,
+                ST_GeomFromText(geometry_wkt) AS geom
+            FROM pgduckdb.bdh.dim_ward
+        ),
+        ward_overlaps AS (
+            SELECT
+                d.division_area_id,
+                w.sk_ward,
+                w.ma_xa,
+                ST_Area_Spheroid(ST_FlipCoordinates(ST_Intersection(d.geom, w.geom))) / 1e6 AS overlap_km2,
+                ST_Area_Spheroid(ST_FlipCoordinates(d.geom))                          / 1e6 AS division_total_km2
+            FROM division d
+            JOIN wards w
+              ON ST_Intersects(d.geom, w.geom)
+        ),
+        ranked AS (
+            SELECT
+                *,
+                ROW_NUMBER() OVER (
+                    PARTITION BY division_area_id
+                    ORDER BY overlap_km2 DESC
+                ) AS rn
+            FROM ward_overlaps
+        )
+        SELECT
+            division_area_id,
+            sk_ward,
+            ma_xa,
+            overlap_km2                                       AS area_overlap_km2,
+            overlap_km2 / NULLIF(division_total_km2, 0)       AS area_overlap_ratio
+        FROM ranked
+        WHERE rn = 1
+    $duckdb$) AS r
+),
+
+division AS (
     SELECT
         id            AS division_area_id,
         subtype,
@@ -1087,49 +1235,8 @@ WITH division AS (
         region,
         latitude      AS centroid_lat,
         longitude     AS centroid_long,
-        geometry
+        geometry_wkt
     FROM {{ ref('stg_overture_maps__division_area') }}
-),
-
-wards AS (
-    SELECT
-        sk_ward,
-        ma_xa,
-        geometry
-    FROM {{ ref('dim_ward') }}
-),
-
-overlaps AS (
-    SELECT
-        d.division_area_id,
-        w.sk_ward,
-        w.ma_xa,
-        ST_Area_Spheroid(ST_Intersection(d.geometry, w.geometry)) / 1e6 AS overlap_km2,
-        ST_Area_Spheroid(d.geometry)                              / 1e6 AS division_total_km2
-    FROM division d
-    JOIN wards w
-      ON ST_Intersects(d.geometry, w.geometry)
-),
-
-ranked AS (
-    SELECT
-        *,
-        ROW_NUMBER() OVER (
-            PARTITION BY division_area_id
-            ORDER BY overlap_km2 DESC
-        ) AS rn
-    FROM overlaps
-),
-
-assigned AS (
-    SELECT
-        division_area_id,
-        sk_ward,
-        ma_xa,
-        overlap_km2                                       AS area_overlap_km2,
-        overlap_km2 / NULLIF(division_total_km2, 0)       AS area_overlap_ratio
-    FROM ranked
-    WHERE rn = 1
 )
 
 SELECT
@@ -1141,7 +1248,7 @@ SELECT
     d.region,
     d.centroid_lat,
     d.centroid_long,
-    d.geometry,
+    d.geometry_wkt,
     a.sk_ward,
     a.ma_xa,
     a.area_overlap_km2,
@@ -1552,8 +1659,8 @@ models:
         description: Place latitude
       - name: longitude
         description: Place longitude
-      - name: geometry
-        description: Place point geometry (EPSG:4326)
+      - name: geometry_wkt
+        description: Place point geometry as WKT string (EPSG:4326)
 ```
 
 - [ ] **Step 13.2: Create the SQL model**
@@ -1568,7 +1675,38 @@ Write `application/mage_ai/mds_demo/dbt/data_warehouse/models/bdh/overture_maps/
     )
 }}
 
-WITH places AS (
+/*
+    Spatial join (point-in-polygon) runs inside duckdb.query() to avoid the
+    BLOB roundtrip on geometry columns. We parse WKT on entry; ST_Within does
+    not need ST_FlipCoordinates because it's a topological predicate (no
+    geodesy involved). Places outside any ward polygon get sk_ward = NULL via
+    LEFT JOIN.
+*/
+
+WITH place_with_ward AS (
+    SELECT * FROM duckdb.query($duckdb$
+        WITH places AS (
+            SELECT
+                id AS place_id,
+                ST_GeomFromText(geometry_wkt) AS geom
+            FROM pgduckdb.stg.overture_maps_places
+        ),
+        wards AS (
+            SELECT
+                sk_ward,
+                ST_GeomFromText(geometry_wkt) AS geom
+            FROM pgduckdb.bdh.dim_ward
+        )
+        SELECT
+            p.place_id,
+            w.sk_ward
+        FROM places p
+        LEFT JOIN wards w
+          ON ST_Within(p.geom, w.geom)
+    $duckdb$) AS r
+),
+
+places AS (
     SELECT
         id              AS place_id,
         place_name,
@@ -1578,15 +1716,11 @@ WITH places AS (
         social_link,
         latitude,
         longitude,
-        geometry,
+        geometry_wkt,
         year,
         month,
         day
     FROM {{ ref('stg_overture_maps__places') }}
-),
-
-wards AS (
-    SELECT sk_ward, geometry FROM {{ ref('dim_ward') }}
 ),
 
 categories AS (
@@ -1595,20 +1729,11 @@ categories AS (
 
 date_dim AS (
     SELECT sk_date, date_day FROM {{ ref('dim_date') }}
-),
-
-place_with_ward AS (
-    SELECT
-        p.*,
-        w.sk_ward
-    FROM places p
-    LEFT JOIN wards w
-      ON ST_Within(p.geometry, w.geometry)
 )
 
 SELECT
     {{ dbt_utils.generate_surrogate_key(['p.place_id']) }}                       AS sk_place,
-    p.sk_ward,
+    pw.sk_ward,
     c.sk_place_category,
     dt.sk_date                                                                    AS sk_date_ingested,
     p.place_id,
@@ -1618,10 +1743,11 @@ SELECT
     p.social_link,
     p.latitude,
     p.longitude,
-    p.geometry
-FROM place_with_ward p
-JOIN categories c ON c.primary_category = p.primary_category
-JOIN date_dim   dt ON dt.date_day       = MAKE_DATE(p.year, p.month, p.day)
+    p.geometry_wkt
+FROM places p
+LEFT JOIN place_with_ward pw ON pw.place_id      = p.place_id
+JOIN     categories       c  ON c.primary_category = p.primary_category
+JOIN     date_dim         dt ON dt.date_day        = MAKE_DATE(p.year, p.month, p.day)
 ```
 
 - [ ] **Step 13.3: Build and run tests**
@@ -1707,7 +1833,7 @@ Append to `application/mage_ai/mds_demo/dbt/data_warehouse/models/bdh/overture_m
       - name: land_name
         description: Land feature primary name
       - name: area_km2_in_ward
-        description: Geodesic km² of intersection between feature and ward (ST_Area_Spheroid)
+        description: Geodesic km² of intersection between feature and ward (ST_Area_Spheroid with ST_FlipCoordinates workaround for VN longitudes)
       - name: area_km2_total
         description: Geodesic km² of the entire feature polygon
       - name: overlap_ratio
@@ -1733,21 +1859,48 @@ Write `application/mage_ai/mds_demo/dbt/data_warehouse/models/bdh/overture_maps/
     area_km2_in_ward) or by feature (max overlap_ratio).
 */
 
-WITH land AS (
-    SELECT
-        id              AS land_feature_id,
-        subtype,
-        class,
-        land_name,
-        geometry,
-        year,
-        month,
-        day
-    FROM {{ ref('stg_overture_maps__base') }}
-),
+/*
+    Spatial work runs inside duckdb.query() to avoid BLOB roundtrip. Area uses
+    ST_Area_Spheroid(ST_FlipCoordinates(...)) — workaround for the DuckDB v1.4.3
+    bug where ST_Area_Spheroid returns NaN at longitudes >= 90°.
+*/
 
-wards AS (
-    SELECT sk_ward, ma_xa, geometry FROM {{ ref('dim_ward') }}
+WITH intersected AS (
+    SELECT * FROM duckdb.query($duckdb$
+        WITH land AS (
+            SELECT
+                id AS land_feature_id,
+                subtype,
+                class,
+                land_name,
+                year,
+                month,
+                day,
+                ST_GeomFromText(geometry_wkt) AS geom
+            FROM pgduckdb.stg.overture_maps_base
+        ),
+        wards AS (
+            SELECT
+                sk_ward,
+                ma_xa,
+                ST_GeomFromText(geometry_wkt) AS geom
+            FROM pgduckdb.bdh.dim_ward
+        )
+        SELECT
+            l.land_feature_id,
+            l.subtype,
+            l.class,
+            l.land_name,
+            l.year,
+            l.month,
+            l.day,
+            w.sk_ward,
+            w.ma_xa,
+            ST_Area_Spheroid(ST_FlipCoordinates(ST_Intersection(l.geom, w.geom))) / 1e6 AS area_km2_in_ward,
+            ST_Area_Spheroid(ST_FlipCoordinates(l.geom))                          / 1e6 AS area_km2_total
+        FROM land l
+        JOIN wards w ON ST_Intersects(l.geom, w.geom)
+    $duckdb$) AS r
 ),
 
 land_class AS (
@@ -1756,23 +1909,6 @@ land_class AS (
 
 date_dim AS (
     SELECT sk_date, date_day FROM {{ ref('dim_date') }}
-),
-
-intersected AS (
-    SELECT
-        l.land_feature_id,
-        l.subtype,
-        l.class,
-        l.land_name,
-        l.year,
-        l.month,
-        l.day,
-        w.sk_ward,
-        w.ma_xa,
-        ST_Area_Spheroid(ST_Intersection(l.geometry, w.geometry)) / 1e6 AS area_km2_in_ward,
-        ST_Area_Spheroid(l.geometry)                              / 1e6 AS area_km2_total
-    FROM land l
-    JOIN wards w ON ST_Intersects(l.geometry, w.geometry)
 )
 
 SELECT

@@ -49,7 +49,28 @@ Existing `bdh_nyc_taxi__trips` is a flat denormalized fact, not a strict star. T
 | Date range | 2015-01-01 → 2030-12-31 | Covers ERA5 history with buffer |
 | Surrogate keys | `dbt_utils.generate_surrogate_key` (MD5) | Stable, matches existing nyc_taxi pattern |
 | Ingestion scope | New Mage pipeline included | Turnkey reproducible build |
-| Spatial query engine | **pg_duckdb (DuckDB `spatial` extension)** | All bdh queries run via pg_duckdb. PostGIS is installed but not used for query-time spatial ops. Geodesic area uses `ST_Area_Spheroid(geom)` (no `::geography` cast — DuckDB has no geography type). |
+| Spatial query engine | **pg_duckdb (DuckDB `spatial` extension)** | All bdh queries run via pg_duckdb. PostGIS is installed but not used for query-time spatial ops. Geodesic area uses `ST_Area_Spheroid(ST_FlipCoordinates(geom))` (see DuckDB workarounds note below). |
+| Geometry storage | **WKT TEXT in every persisted table** | DuckDB GEOMETRY columns persist to Postgres as opaque BLOB which can't round-trip back to GEOMETRY. So all stg/bdh tables store geometry as `geometry_wkt TEXT`. Spatial-using models parse with `ST_GeomFromText` inside `duckdb.query($duckdb$ ... $duckdb$)` blocks. |
+
+## DuckDB spatial workarounds (v1.4.3)
+
+Two pg_duckdb / DuckDB-spatial limitations apply project-wide and are addressed in every spatial-using model:
+
+**Workaround 1: `ST_Area_Spheroid` returns `NaN` for longitudes ≥ 90°.**
+The function appears to interpret the X coordinate as latitude; for VN (lon 102°–110°), this exceeds the valid lat range. Wrap with `ST_FlipCoordinates`:
+
+```sql
+ST_Area_Spheroid(ST_FlipCoordinates(geom)) / 1e6 AS area_km2
+```
+
+Verified: returns `1212678.32 m²` for a 0.01° × 0.01° polygon at (lon 105°, lat 10°), matching PostGIS reference.
+
+**Workaround 2: DuckDB GEOMETRY columns persist as opaque BLOB.**
+A column written by `ST_GeomFromText(...)::geometry` lands in Postgres as `bytea` / DuckDB-internal binary, and neither PostGIS (`Invalid endian flag`) nor DuckDB (`Unimplemented type for cast (BLOB → GEOMETRY)`) can read it back. Therefore:
+
+- Every persisted stg / bdh table stores geometry as `geometry_wkt TEXT` (WKT-encoded).
+- Spatial-using models do all spatial work inside `duckdb.query($duckdb$ ... $duckdb$)` blocks. They parse on entry with `ST_GeomFromText(geometry_wkt)` and write only TEXT/numerics to the output.
+- Pre-existing stg models (`stg_overture_maps__base`, `stg_overture_maps__places`) that previously stored a BLOB `geometry` column are migrated to `geometry_wkt TEXT` as part of this work.
 
 ## New ingestion: Overture division_area
 
