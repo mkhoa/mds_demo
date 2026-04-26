@@ -72,3 +72,38 @@ models:
         description: Ingest month (Hive partition column)
       - name: day
         description: Ingest day (Hive partition column)
+
+  - name: stg_overture_maps__division_area
+    description: >
+      Bronze staging model for Overture Maps division_area polygons in Vietnam.
+      Geometry promoted via ST_GeomFromText. Rows missing id or geometry are
+      filtered. Incrementally loaded by Hive partition watermark, delete+insert
+      on id for dedup across re-runs. Source: raw_overture_maps__division_area.
+    columns:
+      - name: id
+        description: Overture division_area unique id
+        data_tests:
+          - not_null
+          - unique
+      - name: subtype
+        description: Division subtype (country, region, county, locality, …)
+      - name: location_name
+        description: Primary name
+      - name: country
+        description: ISO country code (always 'VN')
+      - name: region
+        description: ISO region code
+      - name: latitude
+        description: Centroid latitude
+      - name: longitude
+        description: Centroid longitude
+      - name: geometry
+        description: Division polygon (EPSG:4326), populated via ST_GeomFromText(geometry_wkt)
+        data_tests:
+          - not_null
+      - name: year
+        description: Ingest year (Hive partition)
+      - name: month
+        description: Ingest month (Hive partition)
+      - name: day
+        description: Ingest day (Hive partition)
