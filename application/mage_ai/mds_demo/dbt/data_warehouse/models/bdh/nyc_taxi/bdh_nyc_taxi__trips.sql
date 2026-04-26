@@ -1,7 +1,8 @@
 {{
     config(
-        materialized = 'table',
-        schema = 'bdh'
+        materialized         = 'incremental',
+        incremental_strategy = 'delete+insert',
+        unique_key           = 'trip_id'
     )
 }}
 
@@ -13,6 +14,9 @@
 
 WITH trips AS (
     SELECT * FROM {{ ref('stg_nyc_taxi__trips') }}
+    {% if is_incremental() %}
+    WHERE pickup_datetime >= (SELECT MAX(pickup_datetime) FROM {{ this }})
+    {% endif %}
 )
 
 SELECT

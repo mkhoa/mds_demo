@@ -9,25 +9,14 @@
 }}
 
 /*
-    Incremental strategy:
-      - Full refresh:  reads the raw view (full parquet scan via pg_duckdb).
-      - Incremental:   calls vn_weather_typed_scan() with a partition filter built from
-                       the max (year, month, day) already in this table. The filter is
-                       embedded inside the duckdb.query() string for Hive partition pruning.
-                       unique_key = (date, ma_xa) handles dedup within the re-read partition.
+    Staging layer reads from the materialized raw table.
 */
-
-{% if is_incremental() %}
-    {% set wm = get_partition_watermark(this) %}
-    {% set partition_filter %}(year, month, day) >= ({{ wm.year }}, {{ wm.month }}, {{ wm.day }}){% endset %}
-{% endif %}
 
 WITH source AS (
 
+    SELECT * FROM {{ ref('raw_vn_weather__daily') }}
     {% if is_incremental() %}
-        {{ vn_weather_typed_scan(partition_filter) }}
-    {% else %}
-        SELECT * FROM {{ ref('raw_vn_weather__daily') }}
+    WHERE date >= (SELECT MAX(date) FROM {{ this }})
     {% endif %}
 
 ),

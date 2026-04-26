@@ -11,6 +11,8 @@ Auth:    GOOGLE_APPLICATION_CREDENTIALS (Application Default Credentials).
 Batching: one reduceRegions call per province per image date.
 """
 
+import json
+import math
 import os
 import time
 from datetime import date, timedelta
@@ -27,9 +29,10 @@ if 'test' not in globals():
 
 
 MODIS_COLLECTION  = 'MODIS/061/MOD13Q1'
-MODIS_SCALE_M     = 250          # native resolution
+MODIS_SCALE_M     = 500          # native resolution
 NDVI_SCALE_FACTOR = 0.0001       # raw int → float NDVI
 RATE_LIMIT_S      = 0.5          # seconds between getInfo calls
+WARD_CHUNK_SIZE   = 10           # max wards per GEE request to avoid 10MB payload limit
 
 
 def _init_ee() -> None:
@@ -65,9 +68,12 @@ def _wards_to_fc(ward_rows: list[dict]) -> ee.FeatureCollection:
     features = []
     for w in ward_rows:
         geom_dict = json.loads(w['geometry_json'])
+        # Simplify geometry slightly (10m tolerance) to reduce payload size
+        # without losing accuracy at MODIS 250m resolution.
+        geom = ee.Geometry(geom_dict).simplify(maxError=10)
         features.append(
             ee.Feature(
-                ee.Geometry(geom_dict),
+                geom,
                 {'ma_xa': w['ma_xa'], 'ten_xa': w['ten_xa'],
                  'ma_tinh': w['ma_tinh'], 'ten_tinh': w['ten_tinh']},
             )
@@ -169,13 +175,18 @@ def fetch_ndvi(ward_df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:
         ndvi_img = image.select('NDVI').updateMask(qa_mask)
 
         for prov_code, prov_wards in provinces.items():
-            fc = _wards_to_fc(prov_wards)
-            try:
-                rows = _reduce_image_over_province(ndvi_img, image_date, fc)
-                all_rows.extend(rows)
-            except Exception as exc:
-                print(f"    WARNING: province {prov_code} failed for {image_date}: {exc}")
-            time.sleep(RATE_LIMIT_S)
+            # Chunk wards within the province to avoid the 10MB payload limit.
+            # Large provinces like Lam Dong or Gia Lai can easily exceed this.
+            num_chunks = math.ceil(len(prov_wards) / WARD_CHUNK_SIZE)
+            for i in range(num_chunks):
+                chunk = prov_wards[i * WARD_CHUNK_SIZE : (i + 1) * WARD_CHUNK_SIZE]
+                fc = _wards_to_fc(chunk)
+                try:
+                    rows = _reduce_image_over_province(ndvi_img, image_date, fc)
+                    all_rows.extend(rows)
+                except Exception as exc:
+                    print(f"    WARNING: province {prov_code} (chunk {i+1}/{num_chunks}) failed for {image_date}: {exc}")
+                time.sleep(RATE_LIMIT_S)
 
     if not all_rows:
         return pd.DataFrame()

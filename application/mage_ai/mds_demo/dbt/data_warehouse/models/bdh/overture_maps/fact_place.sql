@@ -1,7 +1,8 @@
 {{
     config(
-        materialized = 'table',
-        schema       = 'bdh'
+        materialized         = 'incremental',
+        incremental_strategy = 'delete+insert',
+        unique_key           = 'sk_place'
     )
 }}
 
@@ -21,6 +22,10 @@
     extracted via r['col']::type.
 */
 
+{% if is_incremental() %}
+    {% set wm = get_partition_watermark(this) %}
+{% endif %}
+
 WITH place_with_ward AS (
     SELECT
         (r['place_id'])::text  AS place_id,
@@ -36,6 +41,9 @@ WITH place_with_ward AS (
                     ORDER BY year DESC, month DESC, day DESC
                 ) AS rn
             FROM pgduckdb.stg.overture_maps_places
+            {% if is_incremental() %}
+            WHERE (year, month, day) >= ({{ wm.year }}, {{ wm.month }}, {{ wm.day }})
+            {% endif %}
         ),
         places AS (
             SELECT place_id, geom FROM places_raw WHERE rn = 1
@@ -74,6 +82,9 @@ places_raw AS (
             ORDER BY year DESC, month DESC, day DESC
         ) AS rn
     FROM {{ ref('stg_overture_maps__places') }}
+    {% if is_incremental() %}
+    WHERE (year, month, day) >= ({{ wm.year }}, {{ wm.month }}, {{ wm.day }})
+    {% endif %}
 ),
 
 places AS (

@@ -1,22 +1,38 @@
 {{
     config(
-        materialized = 'view',
-        schema = 'raw'
+        unique_key = ['observation_date', 'location_id', '_filename']
     )
 }}
 
 /*
-    External view over MinIO landing area Parquet files via pg_duckdb.
-
-    Path layout (hive-partitioned by ingestion date):
-        s3://dwhfilesystem/landing_area/era5_weather/year=YYYY/month=M/day=D/
-    Source: Mage AI pipeline vn_era5_weather_bq
-            → BigQuery ST_REGIONSTATS × ECMWF/ERA5_LAND/DAILY_AGGR
-            × bigquery-public-data.overture_maps.division_area (VN localities)
-
-    Column casts are defined in the era5_weather_typed_scan() macro
-    (macros/parquet_scans.sql) so the stg incremental model can reuse them
-    with an embedded partition filter for Hive partition pruning.
+    Incremental raw table over MinIO landing area Parquet files.
 */
 
-{{ era5_weather_typed_scan() }}
+{% if is_incremental() %}
+    {% set wm = get_partition_watermark(this) %}
+    {% set partition_filter %}(year, month, day) >= ({{ wm.year }}, {{ wm.month }}, {{ wm.day }}){% endset %}
+{% endif %}
+
+SELECT
+    r['location_id']::VARCHAR                AS location_id,
+    r['location_name']::VARCHAR              AS location_name,
+    r['subtype']::VARCHAR                    AS subtype,
+    r['observation_date']::TIMESTAMP         AS observation_date,
+    r['avg_temp_c']::DOUBLE PRECISION        AS avg_temp_c,
+    r['max_temp_c']::DOUBLE PRECISION        AS max_temp_c,
+    r['precip_mm']::DOUBLE PRECISION         AS precip_mm,
+    r['wind_speed_ms']::DOUBLE PRECISION     AS wind_speed_ms,
+    r['soil_moisture']::DOUBLE PRECISION     AS soil_moisture,
+    r['year']::INTEGER                       AS year,
+    r['month']::INTEGER                      AS month,
+    r['day']::INTEGER                        AS day,
+    r['filename']::VARCHAR                   AS _filename
+FROM duckdb.query($duckdb$
+    SELECT *
+    FROM read_parquet(
+        's3://dwhfilesystem/landing_area/era5_weather/**/*.parquet',
+        hive_partitioning = true,
+        filename          = true
+    )
+    {% if is_incremental() %}WHERE {{ partition_filter }}{% endif %}
+$duckdb$) AS r

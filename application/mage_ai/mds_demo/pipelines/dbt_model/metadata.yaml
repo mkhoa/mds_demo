@@ -40,13 +40,13 @@ blocks:
   language: yaml
   name: dbt run
   retry_config: null
-  status: failed
+  status: updated
   timeout: null
   type: dbt
   upstream_blocks:
   - dbt_deps
   uuid: dbt_run
-- all_upstream_blocks_executed: true
+- all_upstream_blocks_executed: false
   color: null
   configuration:
     file_path: data_exporters/dbt_metabase/sync_dbt_to_metabase.py

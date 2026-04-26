@@ -1,7 +1,8 @@
 {{
     config(
-        materialized = 'table',
-        schema       = 'bdh'
+        materialized         = 'incremental',
+        incremental_strategy = 'delete+insert',
+        unique_key           = 'sk_land_feature'
     )
 }}
 
@@ -18,6 +19,10 @@
     duckdb.query() returns a single record column 'r'; columns must be
     extracted via r['col']::type.
 */
+
+{% if is_incremental() %}
+    {% set wm = get_partition_watermark(this) %}
+{% endif %}
 
 WITH intersected AS (
     SELECT
@@ -48,6 +53,9 @@ WITH intersected AS (
                     ORDER BY year DESC, month DESC, day DESC
                 ) AS rn
             FROM pgduckdb.stg.overture_maps_base
+            {% if is_incremental() %}
+            WHERE (year, month, day) >= ({{ wm.year }}, {{ wm.month }}, {{ wm.day }})
+            {% endif %}
         ),
         land AS (
             SELECT * FROM land_raw WHERE rn = 1

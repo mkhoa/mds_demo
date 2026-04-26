@@ -9,27 +9,15 @@
 }}
 
 /*
-    Incremental strategy:
-      - Full refresh:  reads the raw view (full parquet scan via pg_duckdb).
-      - Incremental:   calls nyc_taxi_typed_scan() with a partition filter built from
-                       the max (year, month, day) already in this table. The filter is
-                       embedded inside the duckdb.query() string so DuckDB applies Hive
-                       partition pruning — only directories at or after the watermark
-                       are opened. The last partition is always re-read to catch late-
-                       arriving files; delete+insert on unique_key handles dedup.
+    Staging layer reads from the materialized raw table.
+    No more pg_duckdb or S3 logic here.
 */
-
-{% if is_incremental() %}
-    {% set wm = get_partition_watermark(this) %}
-    {% set partition_filter %}(year, month, day) >= ({{ wm.year }}, {{ wm.month }}, {{ wm.day }}){% endset %}
-{% endif %}
 
 WITH source AS (
 
+    SELECT * FROM {{ ref('raw_nyc_taxi__trips') }}
     {% if is_incremental() %}
-        {{ nyc_taxi_typed_scan(partition_filter) }}
-    {% else %}
-        SELECT * FROM {{ ref('raw_nyc_taxi__trips') }}
+    WHERE pickup_datetime >= (SELECT MAX(pickup_datetime) FROM {{ this }})
     {% endif %}
 
 ),

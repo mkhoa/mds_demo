@@ -9,26 +9,14 @@
 }}
 
 /*
-    Incremental strategy:
-      - Full refresh:  reads raw_era5_weather__locality (full parquet scan).
-      - Incremental:   calls era5_weather_typed_scan() with a partition filter
-                       built from the latest ingestion (year, month, day) already
-                       in this table, so DuckDB only opens new partition directories.
-                       unique_key = (observation_date, location_id) deduplicates
-                       within the re-read window.
+    Staging layer reads from the materialized raw table.
 */
-
-{% if is_incremental() %}
-    {% set wm = get_partition_watermark(this) %}
-    {% set partition_filter %}(year, month, day) >= ({{ wm.year }}, {{ wm.month }}, {{ wm.day }}){% endset %}
-{% endif %}
 
 WITH source AS (
 
+    SELECT * FROM {{ ref('raw_era5_weather__locality') }}
     {% if is_incremental() %}
-        {{ era5_weather_typed_scan(partition_filter) }}
-    {% else %}
-        SELECT * FROM {{ ref('raw_era5_weather__locality') }}
+    WHERE observation_date >= (SELECT MAX(observation_date) FROM {{ this }})
     {% endif %}
 
 ),

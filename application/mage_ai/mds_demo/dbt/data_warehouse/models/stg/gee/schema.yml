@@ -1,0 +1,16 @@
+version: 2
+
+models:
+  - name: stg_gee__ndvi
+    description: "Staging table for GEE NDVI zonal statistics per ward."
+    columns:
+      - name: image_date
+        description: "acquisition date"
+        tests:
+          - not_null
+      - name: ma_xa
+        description: "ward code"
+        tests:
+          - not_null
+      - name: ndvi_mean
+        description: "mean NDVI value"

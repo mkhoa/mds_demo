@@ -1,0 +1,12 @@
+version: 2
+
+models:
+  - name: raw_gee__ndvi
+    description: "External view over MinIO landing area Parquet files containing GEE NDVI zonal statistics per ward."
+    columns:
+      - name: image_date
+        description: "The acquisition date of the MODIS composite."
+      - name: ma_xa
+        description: "Ward code."
+      - name: ndvi_mean
+        description: "Mean NDVI value for the ward."

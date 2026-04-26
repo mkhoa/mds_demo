@@ -12,3 +12,6 @@ beautifulsoup4
 pycaret
 profet
 earthengine-api
+psycopg2-binary
+jupyterlab-sql-explorer
+jupysql

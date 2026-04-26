@@ -22,14 +22,15 @@ blocks:
   configuration:
     file_source:
       path: transformers/gee/fetch_ndvi_by_ward.py
-  downstream_blocks: []
+  downstream_blocks:
+  - generic_components/write2landing_block
   executor_config: null
   executor_type: local_python
   has_callback: false
   language: python
   name: gee/fetch_ndvi_by_ward
   retry_config: null
-  status: updated
+  status: executed
   timeout: null
   type: transformer
   upstream_blocks:
@@ -91,6 +92,6 @@ variables:
   end_date: ''
   file_format: parquet
   ingestion_data: gee_ndvi
-  start_date: '2020-01-01'
+  start_date: '2026-04-01'
 variables_dir: /home/src/mage_data/mds_demo
 widgets: []

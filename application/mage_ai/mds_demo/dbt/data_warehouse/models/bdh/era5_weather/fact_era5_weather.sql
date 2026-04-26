@@ -1,7 +1,8 @@
 {{
     config(
-        materialized = 'table',
-        schema       = 'bdh'
+        materialized         = 'incremental',
+        incremental_strategy = 'delete+insert',
+        unique_key           = 'sk_era5_weather'
     )
 }}
 
@@ -15,6 +16,9 @@ WITH weather AS (
         wind_speed_ms,
         soil_moisture
     FROM {{ ref('stg_era5_weather__locality') }}
+    {% if is_incremental() %}
+    WHERE observation_date >= (SELECT MAX(observation_date) FROM {{ this }})
+    {% endif %}
 ),
 
 division AS (

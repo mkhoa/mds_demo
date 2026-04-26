@@ -1,0 +1,15 @@
+version: 2
+
+models:
+  - name: fact_gee__ndvi
+    description: "Fact table for GEE NDVI zonal statistics per ward joined with conformed dimensions."
+    columns:
+      - name: sk_gee_ndvi
+        description: "Surrogate key."
+        tests:
+          - unique
+          - not_null
+      - name: sk_ward
+        description: "Ward dimension key."
+      - name: sk_date
+        description: "Date dimension key."
