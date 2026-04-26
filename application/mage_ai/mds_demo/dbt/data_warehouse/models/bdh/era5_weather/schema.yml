@@ -1,0 +1,55 @@
+version: 2
+
+models:
+  - name: fact_era5_weather
+    description: >
+      Daily ERA5-Land weather fact, one row per (observation_date, division_area).
+      sk_ward is denormalised via dim_division_area to enable fast ward-level
+      analytics without re-doing a spatial join. Rows whose location_id is not
+      present in dim_division_area are excluded (which means it had no ward
+      overlap — see dim_division_area filter).
+    columns:
+      - name: sk_era5_weather
+        description: Surrogate key — generate_surrogate_key([observation_date, location_id])
+        data_tests:
+          - not_null
+          - unique
+      - name: sk_date
+        description: FK to dim_date
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_date')
+              field: sk_date
+      - name: sk_division_area
+        description: FK to dim_division_area
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_division_area')
+              field: sk_division_area
+      - name: sk_ward
+        description: FK to dim_ward (denormalised from dim_division_area)
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_ward')
+              field: sk_ward
+      - name: observation_date
+        description: Date of the ERA5-Land daily observation
+        data_tests:
+          - not_null
+      - name: division_area_id
+        description: Overture division_area id (= stg location_id)
+        data_tests:
+          - not_null
+      - name: avg_temp_c
+        description: Mean 2m air temperature for the locality polygon (°C)
+      - name: max_temp_c
+        description: Maximum 2m air temperature for the locality polygon (°C)
+      - name: precip_mm
+        description: Total precipitation (mm); NULL when no rain event
+      - name: wind_speed_ms
+        description: Wind speed at 10m (m/s)
+      - name: soil_moisture
+        description: Volumetric soil water in layer 1 (m³/m³)
