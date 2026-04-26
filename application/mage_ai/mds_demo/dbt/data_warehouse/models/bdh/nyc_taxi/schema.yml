@@ -1,0 +1,74 @@
+version: 2
+
+models:
+  - name: bdh_nyc_taxi__trips
+    description: >
+      Silver / Business Data Hub trip fact table. Full conformed record per trip
+      with surrogate key, derived date/time attributes, and all fare components.
+      Materialised as a table for query performance.
+    columns:
+      - name: trip_id
+        description: MD5 surrogate key derived from taxi_type, timestamps, locations, and total_amount
+        data_tests:
+          - unique
+          - not_null
+      - name: taxi_type
+        description: Fleet type — yellow, green, fhv, fhvhv
+        data_tests:
+          - not_null
+      - name: vendor_id
+        description: TLC vendor identifier
+      - name: year
+        description: Trip year
+      - name: month
+        description: Trip month
+      - name: trip_date
+        description: Calendar date of pickup (DATE)
+      - name: pickup_hour
+        description: Hour of day at pickup (0–23)
+      - name: pickup_dow
+        description: Day of week at pickup (0=Sunday, 6=Saturday)
+      - name: pu_location_id
+        description: TLC Taxi Zone for pickup
+        data_tests:
+          - not_null
+      - name: do_location_id
+        description: TLC Taxi Zone for dropoff
+        data_tests:
+          - not_null
+      - name: rate_code_id
+        description: Rate code numeric identifier
+      - name: rate_code_name
+        description: Human-readable rate code label
+      - name: payment_type
+        description: Payment method code
+      - name: payment_type_name
+        description: Human-readable payment method
+      - name: pickup_datetime
+        description: Meter engagement timestamp
+      - name: dropoff_datetime
+        description: Meter disengagement timestamp
+      - name: passenger_count
+        description: Number of passengers
+      - name: trip_distance
+        description: Distance in miles
+      - name: trip_duration_minutes
+        description: Elapsed trip time in minutes
+      - name: fare_amount
+        description: Metered fare
+      - name: extra
+        description: Extras and surcharges
+      - name: mta_tax
+        description: MTA tax
+      - name: tip_amount
+        description: Tip amount
+      - name: tolls_amount
+        description: Total tolls paid
+      - name: improvement_surcharge
+        description: Improvement surcharge
+      - name: congestion_surcharge
+        description: Congestion surcharge
+      - name: airport_fee
+        description: Airport pickup fee
+      - name: total_amount
+        description: Total amount charged

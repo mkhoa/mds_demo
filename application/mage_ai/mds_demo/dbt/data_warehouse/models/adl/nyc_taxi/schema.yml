@@ -1,0 +1,86 @@
+version: 2
+
+models:
+  - name: adl_nyc_taxi__daily_summary
+    description: >
+      Gold / Analytics Data Layer. Daily trip volume, revenue, and efficiency KPIs
+      per taxi type. Primary reporting grain for dashboards and time-series analysis.
+    columns:
+      - name: trip_date
+        description: Calendar date
+        data_tests:
+          - not_null
+      - name: taxi_type
+        description: Fleet type — yellow, green, fhv, fhvhv
+        data_tests:
+          - not_null
+      - name: year
+        description: Year
+      - name: month
+        description: Month
+      - name: total_trips
+        description: Number of trips on that date for that taxi type
+      - name: total_passengers
+        description: Sum of passenger counts
+      - name: total_miles
+        description: Sum of trip distances in miles
+      - name: avg_trip_miles
+        description: Average trip distance in miles
+      - name: avg_trip_duration_min
+        description: Average trip duration in minutes
+      - name: total_revenue
+        description: Sum of total_amount across all trips
+      - name: avg_fare
+        description: Average total amount per trip
+      - name: total_tips
+        description: Sum of tip amounts
+      - name: avg_tip
+        description: Average tip per trip
+      - name: total_congestion_surcharge
+        description: Sum of congestion surcharges collected
+      - name: total_airport_fees
+        description: Sum of airport fees collected
+      - name: avg_speed_mph
+        description: Derived — average speed in miles per hour (distance / duration)
+      - name: credit_card_trips
+        description: Count of trips paid by credit card
+      - name: cash_trips
+        description: Count of trips paid in cash
+
+  - name: adl_nyc_taxi__zone_stats
+    description: >
+      Gold / Analytics Data Layer. Monthly pickup statistics per TLC Taxi Zone
+      and taxi type. Used for geographic demand analysis and zone-level revenue reporting.
+    columns:
+      - name: year
+        description: Year
+        data_tests:
+          - not_null
+      - name: month
+        description: Month
+        data_tests:
+          - not_null
+      - name: taxi_type
+        description: Fleet type
+        data_tests:
+          - not_null
+      - name: pu_location_id
+        description: TLC Taxi Zone ID for pickup
+        data_tests:
+          - not_null
+      - name: pickup_trips
+        description: Number of trips originating from this zone
+      - name: pickup_total_miles
+        description: Total miles for trips from this zone
+      - name: pickup_avg_miles
+        description: Average trip distance for pickups in this zone
+      - name: pickup_total_revenue
+        description: Total revenue for trips from this zone
+      - name: pickup_avg_fare
+        description: Average fare for pickups in this zone
+      - name: pickup_avg_duration_min
+        description: Average trip duration in minutes for this zone
+      - name: peak_pickup_hour
+        description: Most common pickup hour (0–23) in this zone-month
+      - name: peak_pickup_dow
+        description: Most common pickup day of week (0=Sunday) in this zone-month

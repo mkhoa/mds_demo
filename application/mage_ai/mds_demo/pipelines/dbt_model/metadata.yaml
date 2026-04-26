@@ -3,33 +3,73 @@ blocks:
   color: null
   configuration:
     dbt:
-      command: run
+      command: deps
     dbt_profile_target: prod
     dbt_project_name: dbt/data_warehouse
     disable_query_preprocessing: false
-    export_write_policy: append
     file_source:
-      path: dbts/opaque_music.yaml
-    use_raw_sql: false
-  downstream_blocks: []
+      path: dbts/dbt_deps.yaml
+  downstream_blocks:
+  - dbt_run
   executor_config: null
   executor_type: local_python
   has_callback: false
   language: yaml
-  name: opaque music
+  name: dbt deps
   retry_config: null
   status: executed
   timeout: null
   type: dbt
   upstream_blocks: []
-  uuid: opaque_music
+  uuid: dbt_deps
+- all_upstream_blocks_executed: true
+  color: null
+  configuration:
+    dbt:
+      command: run
+    dbt_profile_target: prod
+    dbt_project_name: dbt/data_warehouse
+    disable_query_preprocessing: false
+    file_source:
+      path: dbts/dbt_run.yaml
+  downstream_blocks:
+  - dbt_metabase/sync_dbt_to_metabase
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: yaml
+  name: dbt run
+  retry_config: null
+  status: executed
+  timeout: null
+  type: dbt
+  upstream_blocks:
+  - dbt_deps
+  uuid: dbt_run
+- all_upstream_blocks_executed: true
+  color: null
+  configuration:
+    file_path: data_exporters/dbt_metabase/sync_dbt_to_metabase.py
+  downstream_blocks: []
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: dbt_metabase/sync_dbt_to_metabase
+  retry_config: null
+  status: executed
+  timeout: null
+  type: data_exporter
+  upstream_blocks:
+  - dbt_run
+  uuid: dbt_metabase/sync_dbt_to_metabase
 cache_block_output_in_memory: false
 callbacks: []
 concurrency_config: {}
 conditionals: []
 created_at: '2026-04-25 20:01:50.650967+00:00'
 data_integration: null
-description: Pipelines to trigger dbt model
+description: Run dbt data_warehouse models (deps → run → metabase sync)
 executor_config: {}
 executor_count: 1
 executor_type: null
@@ -42,8 +82,14 @@ run_pipeline_in_one_process: false
 settings:
   triggers: null
 spark_config: {}
-tags: []
+tags:
+- dbt
 type: python
 uuid: dbt_model
+variables:
+  include_schemas: bdh,adl
+  metabase_api_key: mb_P8M35f504clu0tq1xRu/wKJ78cRS+D+sQEefgqaKzms=
+  metabase_database: Warehouse DB
+  metabase_url: http://mds_demo-metabase-1:3000
 variables_dir: /home/src/mage_data/mds_demo
 widgets: []

@@ -1,0 +1,45 @@
+blocks:
+- all_upstream_blocks_executed: true
+  color: null
+  configuration:
+    file_path: data_exporters/dbt_metabase/sync_dbt_to_metabase.py
+  downstream_blocks: []
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: dbt_metabase/sync_dbt_to_metabase
+  retry_config: null
+  status: updated
+  timeout: null
+  type: data_exporter
+  upstream_blocks: []
+  uuid: dbt_metabase/sync_dbt_to_metabase
+
+cache_block_output_in_memory: false
+callbacks: []
+concurrency_config: {}
+conditionals: []
+description: Sync dbt model and column descriptions into Metabase
+executor_config: {}
+executor_count: 1
+executor_type: null
+extensions: {}
+name: dbt_metabase_sync
+notification_config: {}
+retry_config: {}
+run_pipeline_in_one_process: false
+settings:
+  triggers: null
+tags:
+- dbt
+- metabase
+type: python
+uuid: dbt_metabase_sync
+variables:
+  metabase_url: http://mds_demo-metabase-1:3000
+  metabase_api_key: mb_P8M35f504clu0tq1xRu/wKJ78cRS+D+sQEefgqaKzms=
+  metabase_database: Warehouse DB
+  include_schemas: bdh,adl
+variables_dir: /home/src/mage_data/mds_demo
+widgets: []

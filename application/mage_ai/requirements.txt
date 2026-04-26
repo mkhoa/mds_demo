@@ -3,6 +3,7 @@ vnstock
 openpyxl
 holidays
 dbt-core
+dbt-metabase
 jinja2>=3.1.5
 requests
 deltalake

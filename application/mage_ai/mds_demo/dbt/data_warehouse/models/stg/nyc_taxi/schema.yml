@@ -1,0 +1,59 @@
+version: 2
+
+models:
+  - name: stg_nyc_taxi__trips
+    description: >
+      Bronze / staging model. Filters invalid trips (zero distance, negative fares,
+      reversed timestamps) and adds derived columns (duration, payment label, rate label).
+      One row per valid trip record.
+    columns:
+      - name: vendor_id
+        description: TLC vendor identifier
+      - name: taxi_type
+        description: Fleet type — yellow, green, fhv, fhvhv
+      - name: pu_location_id
+        description: TLC Taxi Zone for pickup
+        data_tests:
+          - not_null
+      - name: do_location_id
+        description: TLC Taxi Zone for dropoff
+        data_tests:
+          - not_null
+      - name: pickup_datetime
+        description: Meter engagement timestamp
+        data_tests:
+          - not_null
+      - name: dropoff_datetime
+        description: Meter disengagement timestamp
+        data_tests:
+          - not_null
+      - name: trip_duration_minutes
+        description: Derived — elapsed trip time in minutes
+      - name: trip_distance
+        description: Distance in miles (non-negative, zero-distance trips filtered)
+      - name: passenger_count
+        description: Number of passengers (non-negative)
+      - name: payment_type
+        description: Payment method code
+      - name: payment_type_name
+        description: Human-readable payment method
+      - name: rate_code_id
+        description: Rate code numeric identifier
+      - name: rate_code_name
+        description: Human-readable rate code label
+      - name: fare_amount
+        description: Metered fare
+      - name: tip_amount
+        description: Tip amount
+      - name: total_amount
+        description: Total charged to passenger
+      - name: congestion_surcharge
+        description: Congestion surcharge (null coalesced to 0)
+      - name: airport_fee
+        description: Airport pickup fee (null coalesced to 0)
+      - name: store_and_fwd_flag
+        description: True if trip was stored locally before forwarding to server
+      - name: year
+        description: Trip year
+      - name: month
+        description: Trip month

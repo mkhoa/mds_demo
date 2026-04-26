@@ -26,10 +26,9 @@ def export_data_to_s3(df: DataFrame, **kwargs) -> None:
     config_profile = kwargs.get('config_profile', 'default')
 
     # Fall back to now() when running manually (execution_date is None)
-    today          = kwargs.get('execution_date') or datetime.utcnow()
-    year_month_id  = today.strftime('%Y%m')
-    date_id        = today.strftime('%Y%m%d')
-    timestamp_id   = today.strftime('%H%M%S')
+    today        = kwargs.get('execution_date') or datetime.utcnow()
+    date_id      = today.strftime('%Y%m%d')
+    timestamp_id = today.strftime('%H%M%S')
 
     ingestion_data = kwargs.get('ingestion_data')
     if not ingestion_data:
@@ -39,9 +38,11 @@ def export_data_to_s3(df: DataFrame, **kwargs) -> None:
     file_format  = kwargs.get('file_format', 'parquet')
     extension    = 'parquet' if file_format == 'parquet' else 'csv'
 
+    # Hive-style partition path — year/month/day enable partition pruning;
+    # timestamp in the filename disambiguates multiple runs on the same day.
     object_key = (
         f'landing_area/{ingestion_data}'
-        f'/{year_month_id}/{date_id}'
+        f'/year={today.year}/month={today.month}/day={today.day}'
         f'/{ingestion_data}_{timestamp_id}.{extension}'
     )
 

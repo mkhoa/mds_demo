@@ -50,9 +50,10 @@ def transform_nyc_taxi(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:
         if col in df.columns:
             df[col] = df[col].astype('int32')
 
-    # Partition columns (already added by loader, ensure string for Delta partitioning)
-    df['year']  = df['year'].astype(str)
-    df['month'] = df['month'].astype(str).str.zfill(2)
+    # year/month are encoded in the landing path as hive partitions (year=YYYY/month=M/).
+    # Drop them from the parquet data to avoid column conflicts when reading with
+    # hive_partitioning=true in the raw dbt model.
+    df = df.drop(columns=['year', 'month'], errors='ignore')
 
     print(f"After transform: {len(df):,} rows, {len(df.columns)} columns")
 
@@ -64,5 +65,5 @@ def test_output(df, *args) -> None:
     assert df is not None, 'Output is None'
     assert len(df) > 0, 'DataFrame is empty after transform'
     assert 'taxi_type' in df.columns, 'Missing taxi_type column'
-    assert 'year' in df.columns, 'Missing year column'
-    assert 'month' in df.columns, 'Missing month column'
+    assert 'year' not in df.columns, 'year should be dropped (encoded in landing path)'
+    assert 'month' not in df.columns, 'month should be dropped (encoded in landing path)'

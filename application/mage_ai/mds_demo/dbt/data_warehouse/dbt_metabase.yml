@@ -1,0 +1,15 @@
+manifest_path: target/manifest.json
+
+metabase_url: http://mds_demo-metabase-1:3000
+metabase_username: ${METABASE_USER}
+metabase_password: ${METABASE_PASSWORD}
+
+metabase_database: Warehouse DB
+
+# Sync only the curated schemas — skip raw/stg internals
+include_schemas:
+  - bdh
+  - adl
+
+append_tags: true
+order_fields: true
