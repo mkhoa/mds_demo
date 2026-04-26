@@ -166,3 +166,25 @@ SELECT
     r['day']::INTEGER                AS day
 FROM {{ duckdb_parquet_from('s3://dwhfilesystem/landing_area/overture_maps_places/**/*.parquet', partition_filter) }}
 {% endmacro %}
+
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Overture Maps — Division Area (admin polygons used as spatial bridge to ma_xa)
+-- Layout: s3://dwhfilesystem/landing_area/overture_maps_division_area/year=Y/month=M/day=D/*.parquet
+-- Source: bigquery-public-data.overture_maps.division_area, filtered to country='VN'
+-- ──────────────────────────────────────────────────────────────────────────────
+{% macro overture_maps_division_area_typed_scan(partition_filter='') %}
+SELECT
+    r['id']::VARCHAR                 AS id,
+    r['subtype']::VARCHAR            AS subtype,
+    r['location_name']::VARCHAR      AS location_name,
+    r['country']::VARCHAR            AS country,
+    r['region']::VARCHAR             AS region,
+    r['latitude']::DOUBLE PRECISION  AS latitude,
+    r['longitude']::DOUBLE PRECISION AS longitude,
+    r['geometry_wkt']::VARCHAR       AS geometry_wkt,
+    r['year']::INTEGER               AS year,
+    r['month']::INTEGER              AS month,
+    r['day']::INTEGER                AS day
+FROM {{ duckdb_parquet_from('s3://dwhfilesystem/landing_area/overture_maps_division_area/**/*.parquet', partition_filter) }}
+{% endmacro %}
