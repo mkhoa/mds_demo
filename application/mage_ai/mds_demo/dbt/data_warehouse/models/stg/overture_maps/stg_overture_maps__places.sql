@@ -42,7 +42,7 @@ cleaned AS (
         social_link,
         latitude,
         longitude,
-        ST_GeomFromText(geometry_wkt)::geometry     AS geometry,
+        geometry_wkt,
         year,
         month,
         day

@@ -22,8 +22,8 @@ models:
         description: Centroid latitude
       - name: longitude
         description: Centroid longitude
-      - name: geometry
-        description: PostGIS geometry of the land feature polygon
+      - name: geometry_wkt
+        description: Polygon (base / division_area) or point (places) as WKT string (EPSG:4326). Stored as TEXT to avoid the DuckDB GEOMETRY-as-BLOB roundtrip issue.
         data_tests:
           - not_null
       - name: year
@@ -62,8 +62,8 @@ models:
         description: Longitude of the place
         data_tests:
           - not_null
-      - name: geometry
-        description: PostGIS point geometry
+      - name: geometry_wkt
+        description: Polygon (base / division_area) or point (places) as WKT string (EPSG:4326). Stored as TEXT to avoid the DuckDB GEOMETRY-as-BLOB roundtrip issue.
         data_tests:
           - not_null
       - name: year
@@ -97,8 +97,8 @@ models:
         description: Centroid latitude
       - name: longitude
         description: Centroid longitude
-      - name: geometry
-        description: Division polygon (EPSG:4326), populated via ST_GeomFromText(geometry_wkt)
+      - name: geometry_wkt
+        description: Polygon (base / division_area) or point (places) as WKT string (EPSG:4326). Stored as TEXT to avoid the DuckDB GEOMETRY-as-BLOB roundtrip issue.
         data_tests:
           - not_null
       - name: year
