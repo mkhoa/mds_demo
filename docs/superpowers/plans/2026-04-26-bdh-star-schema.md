@@ -103,8 +103,6 @@ def load_data(*args, **kwargs) -> pd.DataFrame:
     query = """
 SELECT
     id,
-    theme,
-    type,
     subtype,
     names.primary                 AS location_name,
     country,
@@ -259,8 +257,6 @@ Add at the end of `application/mage_ai/mds_demo/dbt/data_warehouse/macros/parque
 {% macro overture_maps_division_area_typed_scan(partition_filter='') %}
 SELECT
     r['id']::VARCHAR                 AS id,
-    r['theme']::VARCHAR              AS theme,
-    r['type']::VARCHAR               AS type,
     r['subtype']::VARCHAR            AS subtype,
     r['location_name']::VARCHAR      AS location_name,
     r['country']::VARCHAR            AS country,
@@ -315,10 +311,6 @@ Append to `application/mage_ai/mds_demo/dbt/data_warehouse/models/raw/overture_m
     columns:
       - name: id
         description: Overture Maps globally unique division_area identifier
-      - name: theme
-        description: Overture theme — always 'admins' for division_area
-      - name: type
-        description: Overture type — always 'division_area'
       - name: subtype
         description: Division subtype (country, region, county, locality, …)
       - name: location_name
@@ -408,10 +400,6 @@ Append to `application/mage_ai/mds_demo/dbt/data_warehouse/models/stg/overture_m
         data_tests:
           - not_null
           - unique
-      - name: theme
-        description: Always 'admins'
-      - name: type
-        description: Always 'division_area'
       - name: subtype
         description: Division subtype (country, region, county, locality, …)
       - name: location_name
@@ -477,8 +465,6 @@ WITH source AS (
 cleaned AS (
     SELECT
         id,
-        theme,
-        type,
         subtype,
         location_name,
         country,
@@ -1043,8 +1029,6 @@ Append to `application/mage_ai/mds_demo/dbt/data_warehouse/models/bdh/dim/schema
         data_tests:
           - not_null
           - unique
-      - name: theme
-        description: Always 'admins'
       - name: subtype
         description: Division subtype
       - name: location_name
@@ -1097,8 +1081,6 @@ Write `application/mage_ai/mds_demo/dbt/data_warehouse/models/bdh/dim/dim_divisi
 WITH division AS (
     SELECT
         id            AS division_area_id,
-        theme,
-        type,
         subtype,
         location_name,
         country,
@@ -1153,7 +1135,6 @@ assigned AS (
 SELECT
     {{ dbt_utils.generate_surrogate_key(['d.division_area_id']) }}  AS sk_division_area,
     d.division_area_id,
-    d.theme,
     d.subtype,
     d.location_name,
     d.country,

@@ -67,27 +67,25 @@ Pattern matches existing `overture_maps_base_ingestion` and `overture_maps_place
 ```sql
 SELECT
     id,
-    theme,
-    type,
     subtype,
     names.primary AS location_name,
     country,
     region,
     ST_Y(ST_CENTROID(geometry)) AS latitude,
     ST_X(ST_CENTROID(geometry)) AS longitude,
-    geometry
+    ST_ASTEXT(geometry)         AS geometry_wkt
 FROM `bigquery-public-data.overture_maps.division_area`
 WHERE country = 'VN'
 ORDER BY subtype;
 ```
+
+> Note: the original spec listed `theme` and `type` columns. Verified during Task 1 implementation that these don't exist on `bigquery-public-data.overture_maps.division_area` (the table's actual columns are `id, country, sources, subtype, admin_level, class, names, is_land, is_territorial, region, division_id, version, bbox, geometry`). For division_area in this dataset, `theme` would always be `'admins'` and `type` would always be `'division_area'` — both redundant, so removed.
 
 **stg_overture_maps__division_area columns:**
 
 | Column | Type | Notes |
 |---|---|---|
 | `id` | TEXT | Overture unique id (also used as `division_area_id` in dim) |
-| `theme` | TEXT | `admins` |
-| `type` | TEXT | `division_area` |
 | `subtype` | TEXT | locality, region, county, … |
 | `location_name` | TEXT | from Overture `names.primary` |
 | `country` | TEXT | `VN` |
@@ -178,7 +176,6 @@ The single source of truth for the division_area → ma_xa spatial mapping.
 |---|---|---|
 | `sk_division_area` | TEXT | `generate_surrogate_key(['division_area_id'])` |
 | `division_area_id` | TEXT | Overture `id` |
-| `theme` | TEXT | |
 | `subtype` | TEXT | |
 | `location_name` | TEXT | |
 | `country` | TEXT | |
