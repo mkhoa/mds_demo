@@ -54,3 +54,50 @@ models:
         description: Place longitude
       - name: geometry_wkt
         description: Place point geometry as WKT string (EPSG:4326)
+
+  - name: fact_land_feature
+    description: >
+      Land feature × ward intersection fact. One row per (land_feature_id, ma_xa)
+      pair where ST_Intersects is true. area_km2_in_ward is the geodesic km² of
+      the intersection (DuckDB ST_Area_Spheroid with ST_FlipCoordinates
+      workaround). Lets you answer "how many km² of forest in ward X".
+      Source dedup'd per id by latest ingestion partition.
+    columns:
+      - name: sk_land_feature
+        description: Surrogate key — generate_surrogate_key([land_feature_id, ma_xa])
+        data_tests:
+          - not_null
+          - unique
+      - name: sk_ward
+        description: FK to dim_ward
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_ward')
+              field: sk_ward
+      - name: sk_land_class
+        description: FK to dim_land_class
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_land_class')
+              field: sk_land_class
+      - name: sk_date_ingested
+        description: FK to dim_date — the ingestion date derived from year/month/day partition
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_date')
+              field: sk_date
+      - name: land_feature_id
+        description: Overture land feature id (NOT unique here — repeats across wards)
+        data_tests:
+          - not_null
+      - name: land_name
+        description: Land feature primary name
+      - name: area_km2_in_ward
+        description: Geodesic km² of intersection between feature and ward (ST_Area_Spheroid with ST_FlipCoordinates workaround for VN longitudes)
+      - name: area_km2_total
+        description: Geodesic km² of the entire feature polygon
+      - name: overlap_ratio
+        description: area_km2_in_ward / area_km2_total (0–1)
