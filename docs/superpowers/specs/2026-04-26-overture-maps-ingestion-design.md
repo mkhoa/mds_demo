@@ -8,13 +8,17 @@
 
 ## 1. Architecture
 
-One Mage pipeline (`overture_maps_ingestion`) with two independent loader blocks — one per theme — feeding into two instances of the shared `write2landing_block` exporter. Both branches run in parallel.
+Two Mage pipelines — one per theme — each following the standard `loader → generic exporter` pattern used across the project (e.g. `vn_weather_historical`). The `generic_components/write2landing_block` file is reused unchanged in both; no new exporter file is created.
 
 ```
-overture_maps_ingestion
-  ├── load_overture_base   ──→ write2landing_base   → MinIO overture_maps_base
-  └── load_overture_places ──→ write2landing_places → MinIO overture_maps_places
+overture_maps_base_ingestion:
+  load_overture_base ──→ generic_components/write2landing_block → MinIO overture_maps_base
+
+overture_maps_places_ingestion:
+  load_overture_places ──→ generic_components/write2landing_block → MinIO overture_maps_places
 ```
+
+Each pipeline sets `ingestion_data` in its own pipeline variables, which is how `write2landing_block` determines the MinIO path.
 
 ---
 
@@ -113,48 +117,43 @@ def load_data(*args, **kwargs):
 
 ## 5. Pipeline Variables
 
+**`overture_maps_base_ingestion`:**
 ```yaml
 variables:
+  ingestion_data: overture_maps_base
   bucket_name: dwhfilesystem
   file_format: parquet
 ```
 
-`ingestion_data` is overridden per-block via `block_settings` (see Section 5b).
+**`overture_maps_places_ingestion`:**
+```yaml
+variables:
+  ingestion_data: overture_maps_places
+  bucket_name: dwhfilesystem
+  file_format: parquet
+```
 
 ---
 
 ## 5b. Pipeline Block Structure (Mage metadata.yaml)
 
+Each pipeline follows the same two-block pattern:
+
 ```yaml
+# overture_maps_base_ingestion/metadata.yaml
 blocks:
   - name: overture_maps/load_overture_base
     type: data_loader
     upstream_blocks: []
-    downstream_blocks: [write2landing_base]
+    downstream_blocks: [generic_components/write2landing_block]
 
   - name: generic_components/write2landing_block
-    uuid: write2landing_base
-    block_settings:
-      variables:
-        ingestion_data: overture_maps_base
+    type: data_exporter
     upstream_blocks: [overture_maps/load_overture_base]
-    downstream_blocks: []
-
-  - name: overture_maps/load_overture_places
-    type: data_loader
-    upstream_blocks: []
-    downstream_blocks: [write2landing_places]
-
-  - name: generic_components/write2landing_block
-    uuid: write2landing_places
-    block_settings:
-      variables:
-        ingestion_data: overture_maps_places
-    upstream_blocks: [overture_maps/load_overture_places]
     downstream_blocks: []
 ```
 
-Both branches run in parallel. The `write2landing_block` file is reused unchanged.
+Same structure for `overture_maps_places_ingestion`, substituting `load_overture_places`. The `write2landing_block` file is shared and unchanged.
 
 ---
 
