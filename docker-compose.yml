@@ -151,31 +151,16 @@ services:
   anything-llm:
     container_name: anythingllm
     image: mintplexlabs/anythingllm:pg
+    env_file:
+      - .env
     ports:
       - "3001:3001"
     cap_add:
       - SYS_ADMIN
     volumes:
-      - "./application/anythingllm.env:/app/server/.env"
       - "./data/anythingllm/server/storage:/app/server/storage"
       - "./data/anythingllm/collector/hotdir/:/app/collector/hotdir"
       - "./data/anythingllm/collector/outputs/:/app/collector/outputs"
-    environment:
-      - SERVER_PORT=${SERVER_PORT}
-      - STORAGE_DIR=${STORAGE_DIR}
-      - JWT_SECRET=${JWT_SECRET}
-      - LLM_PROVIDER=${LLM_PROVIDER}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - GEMINI_LLM_MODEL_PREF=${GEMINI_LLM_MODEL_PREF}
-      - EMBEDDING_ENGINE=${EMBEDDING_ENGINE}
-      - GEMINI_EMBEDDING_API_KEY=${GEMINI_EMBEDDING_API_KEY}
-      - EMBEDDING_MODEL_PREF=${EMBEDDING_MODEL_PREF}
-      - VECTOR_DB=${VECTOR_DB}
-      - DATABASE_URL=${DATABASE_URL}
-      - PGVECTOR_CONNECTION_STRING=${PGVECTOR_CONNECTION_STRING}
-      - PGVECTOR_TABLE_NAME=${PGVECTOR_TABLE_NAME}
-      - AGENT_GSE_KEY=${AGENT_GSE_KEY}
-      - AGENT_GSE_CTX=${AGENT_GSE_CTX}
     depends_on:
       warehouse_db:
         condition: service_healthy

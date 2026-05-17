@@ -110,7 +110,7 @@ Key groups — do not hardcode these in config files:
 | `DATABASE_URL` | AnythingLLM app DB connection (Postgres) |
 | `JWT_SECRET`, `SIG_KEY`, `SIG_SALT` | AnythingLLM auth — do NOT rotate without resetting user sessions |
 
-AnythingLLM also reads from `application/anythingllm.env` (mounted as `/app/server/.env`) for its full config.
+All AnythingLLM config now lives in the project root `.env` and is injected into the container via `env_file: .env` in `docker-compose.yml`. There is no longer a separate `application/anythingllm.env` file.
 
 ---
 
@@ -192,7 +192,7 @@ Trino runs as a single coordinator (no separate workers). Max heap: 2 GB. Config
 - Embeddings: Gemini `text-embedding-004`
 - App DB: `anythingllm` database on `warehouse_db` (Prisma / Postgres)
 - Vector store: pgvector in `anythingllm` database, table `anythingllm_vectors`
-- Config is mounted via `application/anythingllm.env` → `/app/server/.env` inside container
+- Config comes from the project root `.env` via `env_file:` in `docker-compose.yml` (no separate file mounted at `/app/server/.env`)
 - Data volumes: `./data/anythingllm/` (storage, hotdir, outputs) — not under `application/`
 
 ---
@@ -227,5 +227,5 @@ storage/
 - **Trino catalog credentials are duplicated.** `application/trino/catalog/*.properties` hardcode `warehouse`/`warehouse` and `admin`/`admin123`. If you change `.env` credentials, update the catalog files too.
 - **`metadata.yaml` has stale Spark config.** Safe to leave as-is since Spark is not running, but don't rely on those settings.
 - **`03-extra-dbs.sh` creates `metabase` db** — Metabase now uses `warehouse_db` as its backing store (not a separate `metabase_db` container).
-- **AnythingLLM mounts its own `.env` file** (`application/anythingllm.env`). Environment variables in `docker-compose.yml` for `anything-llm` must stay in sync with that file.
+- **AnythingLLM consumes the project root `.env`** via `env_file: .env`. AnythingLLM may auto-write a `/app/server/.env` inside the container when settings are changed via the UI; that write stays inside the container and is lost on restart, so **UI-driven config changes do not persist** — update the project root `.env` instead.
 - **`data/anythingllm/`** is the runtime data directory (not `application/anythingllm/`). This path is gitignored.
