@@ -3,8 +3,10 @@ set -e
 
 . /opt/hermes/.venv/bin/activate
 
-# Install the operator persona on first boot (does not overwrite edits).
-if [ -f /usr/local/share/hermes/SOUL.md ] && [ ! -s /opt/data/SOUL.md ]; then
+# Install the operator persona on every boot. application/hermes/SOUL.md is the
+# source of truth, so overwrite whatever default SOUL.md Hermes scaffolds in
+# /opt/data. To change the persona, edit application/hermes/SOUL.md and rebuild.
+if [ -f /usr/local/share/hermes/SOUL.md ]; then
   cp /usr/local/share/hermes/SOUL.md /opt/data/SOUL.md
 fi
 
