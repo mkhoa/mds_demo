@@ -148,24 +148,6 @@ services:
     networks:
       - ndsnet
 
-  anything-llm:
-    container_name: anythingllm
-    image: mintplexlabs/anythingllm:pg
-    env_file:
-      - .env
-    ports:
-      - "3001:3001"
-    cap_add:
-      - SYS_ADMIN
-    volumes:
-      - "./data/anythingllm/server/storage:/app/server/storage"
-      - "./data/anythingllm/collector/hotdir/:/app/collector/hotdir"
-      - "./data/anythingllm/collector/outputs/:/app/collector/outputs"
-    depends_on:
-      warehouse_db:
-        condition: service_healthy
-    networks:
-      - ndsnet
   trino:
     image: "trinodb/trino:latest"
     hostname: trino
@@ -248,6 +230,42 @@ services:
   #     - ./application/clickhouse/etc:/etc/clickhouse-server/
   #   networks:
   #     - ndsnet
+
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable
+    container_name: litellm
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    environment:
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      DATABASE_URL: postgresql://${WAREHOUSE_DB_USER}:${WAREHOUSE_DB_PASS}@warehouse_db:5432/litellm
+      STORE_MODEL_IN_DB: "True"
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./application/litellm/config.yaml:/app/config.yaml:ro
+    depends_on:
+      warehouse_db:
+        condition: service_healthy
+    networks:
+      - ndsnet
+    restart: unless-stopped
+
+  redis:
+    image: redis/redis-stack:latest
+    container_name: redis
+    volumes:
+      - ./data/redis:/data
+    networks:
+      - ndsnet
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 30s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
 
 networks:
   ndsnet:
