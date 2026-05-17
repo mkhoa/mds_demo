@@ -267,6 +267,59 @@ services:
       retries: 5
       start_period: 20s
 
+  hermes:
+    build:
+      context: ./application/hermes
+      dockerfile: Dockerfile
+    image: hermes-operator:local
+    container_name: hermes
+    environment:
+      HERMES_UID: 1000
+      HERMES_GID: 1000
+      API_SERVER_ENABLED: "true"
+      API_SERVER_HOST: 0.0.0.0
+      API_SERVER_PORT: 8642
+      API_SERVER_KEY: ${LITELLM_MASTER_KEY}
+      API_SERVER_MODEL_NAME: hermes
+      HERMES_MODEL: gemini-flash-latest
+      HERMES_PROVIDER: custom
+      HERMES_BASE_URL: http://litellm:4000/v1
+      HERMES_API_KEY: ${LITELLM_MASTER_KEY}
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY}
+      CLAUDE_CONFIG_DIR: /opt/data/claude
+      COMPOSE_PROJECT_NAME: mds_demo
+    ports:
+      - "8642:8642"
+    volumes:
+      - ./application:/workspace/application
+      - ./docker-compose.yml:/workspace/docker-compose.yml:ro
+      - ./.env:/workspace/.env:ro
+      - ./data/hermes:/opt/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - litellm
+    networks:
+      - ndsnet
+    restart: unless-stopped
+
+  hermes-dashboard:
+    image: nousresearch/hermes-agent:latest
+    container_name: hermes-dashboard
+    command: dashboard --host 0.0.0.0 --insecure
+    environment:
+      HERMES_UID: 1000
+      HERMES_GID: 1000
+      GATEWAY_HEALTH_URL: http://hermes:8642
+    ports:
+      - "9119:9119"
+    volumes:
+      - ./data/hermes:/opt/data
+    depends_on:
+      - hermes
+    networks:
+      - ndsnet
+    restart: unless-stopped
+
 networks:
   ndsnet:
     driver: bridge
