@@ -199,3 +199,8 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# Agent layer runtime data
+data/open-webui/
+data/redis/
+data/hermes/
