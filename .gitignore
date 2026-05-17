@@ -16,6 +16,8 @@ application/mage_ai/mage_data/*
 storage/.minio.sys/*
 .*
 !/.gitignore
+!/application/.claude/
+!/application/.claude/*.json
 database/
 
 # Byte-compiled / optimized / DLL files

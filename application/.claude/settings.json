@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker compose -p mds_demo -f /workspace/docker-compose.yml *)",
+      "Bash(docker ps*)",
+      "Bash(docker stats*)",
+      "Bash(docker inspect*)",
+      "Bash(docker logs*)"
+    ]
+  }
+}
