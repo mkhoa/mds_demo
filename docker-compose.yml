@@ -320,6 +320,37 @@ services:
       - ndsnet
     restart: unless-stopped
 
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    environment:
+      PORT: 8090
+      DATABASE_URL: postgresql://${WAREHOUSE_DB_USER}:${WAREHOUSE_DB_PASS}@warehouse_db:5432/openwebui
+      REDIS_URL: redis://redis:6379
+      VECTOR_DB: pgvector
+      PGVECTOR_DB_URL: postgresql://${WAREHOUSE_DB_USER}:${WAREHOUSE_DB_PASS}@warehouse_db:5432/openwebui
+      OPENAI_API_BASE_URL: http://hermes:8642/v1
+      OPENAI_API_KEY: ${LITELLM_MASTER_KEY}
+      WEBUI_SECRET_KEY: ${WEBUI_SECRET_KEY}
+      WEBUI_AUTH: "true"
+      ENABLE_SIGNUP: "true"
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./data/open-webui:/app/backend/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      warehouse_db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      hermes:
+        condition: service_started
+    networks:
+      - ndsnet
+    restart: unless-stopped
+
 networks:
   ndsnet:
     driver: bridge
