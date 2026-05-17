@@ -1,0 +1,47 @@
+model_list:
+  # --- Google Gemini (reuses GEMINI_API_KEY from .env) ---
+  - model_name: gemini-flash-latest
+    litellm_params:
+      model: gemini/gemini-flash-latest
+      api_key: os.environ/GEMINI_API_KEY
+  - model_name: gemini-pro-latest
+    litellm_params:
+      model: gemini/gemini-pro-latest
+      api_key: os.environ/GEMINI_API_KEY
+  - model_name: gemini-flash-lite-latest
+    litellm_params:
+      model: gemini/gemini-flash-lite-latest
+      api_key: os.environ/GEMINI_API_KEY
+
+  # --- OpenRouter (optional; works only if OPENROUTER_API_KEY is set) ---
+  - model_name: glm-5.1
+    litellm_params:
+      model: openrouter/z-ai/glm-5.1
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: kimi-k2.6
+    litellm_params:
+      model: openrouter/moonshotai/kimi-k2.6
+      api_key: os.environ/OPENROUTER_API_KEY
+
+  # --- Claude via Claude Code subscription OAuth ---
+  # No api_key: the credential is the OAuth token forwarded from the client
+  # (see general_settings.forward_client_headers_to_llm_api).
+  # https://docs.litellm.ai/docs/tutorials/claude_code_max_subscription
+  - model_name: anthropic-claude-sonnet
+    litellm_params:
+      model: anthropic/claude-sonnet-4-6
+  - model_name: anthropic-claude-haiku
+    litellm_params:
+      model: anthropic/claude-haiku-4-5
+  - model_name: anthropic-claude-opus
+    litellm_params:
+      model: anthropic/claude-opus-4-7
+
+litellm_settings:
+  drop_params: true
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  # Forward the client's Authorization header (Claude Code's subscription OAuth
+  # token) to Anthropic. Required for the anthropic-claude-* routing above.
+  forward_client_headers_to_llm_api: true
