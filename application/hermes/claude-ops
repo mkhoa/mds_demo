@@ -1,0 +1,21 @@
+#!/bin/sh
+# claude-ops — run headless Claude Code as the MDS Demo platform operator.
+# Routes through LiteLLM's anthropic-claude-* models using Claude Code's
+# subscription OAuth token (forwarded by LiteLLM to Anthropic).
+set -e
+
+if [ -z "${LITELLM_MASTER_KEY}" ]; then
+  echo "claude-ops: LITELLM_MASTER_KEY is not set in the container." >&2
+  exit 1
+fi
+
+export CLAUDE_CONFIG_DIR="${CLAUDE_CONFIG_DIR:-/opt/data/claude}"
+export DISABLE_AUTOUPDATER=1
+export ANTHROPIC_BASE_URL="http://litellm:4000"
+export ANTHROPIC_MODEL="anthropic-claude-sonnet"
+export ANTHROPIC_SMALL_FAST_MODEL="anthropic-claude-haiku"
+export ANTHROPIC_CUSTOM_HEADERS="x-litellm-api-key: Bearer ${LITELLM_MASTER_KEY}"
+
+# The operator environment is rooted at the mounted application/ folder.
+cd /workspace/application
+exec claude --permission-mode bypassPermissions "$@"
