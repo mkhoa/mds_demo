@@ -6,6 +6,8 @@
     )
 }}
 
+-- depends_on: {{ ref('stg_overture_maps__places') }}
+
 /*
     Spatial join (point-in-polygon) runs inside duckdb.query() to avoid the
     BLOB roundtrip on geometry columns. We parse WKT on entry; ST_Within does
@@ -23,7 +25,7 @@
 */
 
 {% if is_incremental() %}
-    {% set wm = get_partition_watermark(this) %}
+    {% set wm = get_partition_watermark(ref('stg_overture_maps__places')) %}
 {% endif %}
 
 WITH place_with_ward AS (

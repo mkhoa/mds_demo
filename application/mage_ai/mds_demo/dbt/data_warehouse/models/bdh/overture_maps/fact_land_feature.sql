@@ -6,6 +6,8 @@
     )
 }}
 
+-- depends_on: {{ ref('stg_overture_maps__base') }}
+
 /*
     Spatial work runs inside duckdb.query() to avoid BLOB roundtrip. Area uses
     ST_Area_Spheroid(ST_FlipCoordinates(...)) — workaround for the DuckDB v1.4.3
@@ -21,7 +23,7 @@
 */
 
 {% if is_incremental() %}
-    {% set wm = get_partition_watermark(this) %}
+    {% set wm = get_partition_watermark(ref('stg_overture_maps__base')) %}
 {% endif %}
 
 WITH intersected AS (

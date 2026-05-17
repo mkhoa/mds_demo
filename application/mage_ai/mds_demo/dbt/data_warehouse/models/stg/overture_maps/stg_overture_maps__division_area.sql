@@ -12,11 +12,15 @@
     Staging layer reads from the materialized raw table.
 */
 
+{% if is_incremental() %}
+    {% set wm = get_partition_watermark(this) %}
+{% endif %}
+
 WITH source AS (
 
     SELECT * FROM {{ ref('raw_overture_maps__division_area') }}
     {% if is_incremental() %}
-    WHERE (year, month, day) >= (SELECT MAX(year), MAX(month), MAX(day) FROM {{ this }})
+    WHERE (year, month, day) >= ({{ wm.year }}, {{ wm.month }}, {{ wm.day }})
     {% endif %}
 
 ),
