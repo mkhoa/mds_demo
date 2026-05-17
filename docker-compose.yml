@@ -233,7 +233,6 @@ services:
 
   litellm:
     image: ghcr.io/berriai/litellm:main-stable
-    container_name: litellm
     command: ["--config", "/app/config.yaml", "--port", "4000"]
     environment:
       LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY}
@@ -254,7 +253,6 @@ services:
 
   redis:
     image: redis/redis-stack:latest
-    container_name: redis
     volumes:
       - ./data/redis:/data
     networks:
@@ -272,7 +270,6 @@ services:
       context: ./application/hermes
       dockerfile: Dockerfile
     image: hermes-operator:local
-    container_name: hermes
     environment:
       HERMES_UID: 1000
       HERMES_GID: 1000
@@ -304,7 +301,6 @@ services:
 
   hermes-dashboard:
     image: nousresearch/hermes-agent:latest
-    container_name: hermes-dashboard
     command: dashboard --host 0.0.0.0 --insecure
     environment:
       HERMES_UID: 1000
@@ -322,7 +318,6 @@ services:
 
   open-webui:
     image: ghcr.io/open-webui/open-webui:main
-    container_name: open-webui
     environment:
       PORT: 8090
       DATABASE_URL: postgresql://${WAREHOUSE_DB_USER}:${WAREHOUSE_DB_PASS}@warehouse_db:5432/openwebui
