@@ -17,7 +17,10 @@ Self-contained Modern Data Stack reference platform running entirely in Docker C
 | Federated query | Trino | `trinodb/trino:latest` |
 | BI / Dashboards | Metabase | `metabase/metabase` |
 | Data science | JupyterLab | custom `application/jupyterlab/Dockerfile` |
-| LLM / RAG | AnythingLLM (pg variant) | `mintplexlabs/anythingllm:pg` |
+| End-user chat | OpenWebUI | `ghcr.io/open-webui/open-webui` |
+| Operator agent | NousResearch Hermes | custom `application/hermes/Dockerfile` |
+| Model gateway | LiteLLM | `ghcr.io/berriai/litellm` |
+| Agent cache | Redis | `redis/redis-stack` |
 
 ---
 
@@ -31,8 +34,11 @@ Self-contained Modern Data Stack reference platform running entirely in Docker C
 | Trino | 8080 | Federated SQL (HTTP only, single coordinator) |
 | Hive Metastore | 9083 | Thrift — internal use by Trino only |
 | Metabase | 3000 | Dashboards |
-| AnythingLLM | 3001 | Chat / RAG |
 | JupyterLab | 8888 | Notebooks |
+| OpenWebUI | 8090 | End-user chat UI |
+| Hermes | 8642 | Operator agent (OpenAI-compatible API) |
+| Hermes dashboard | 9119 | Agent run dashboard |
+| LiteLLM | 4000 | Model gateway |
 | warehouse_db (Postgres) | 5432 | Main warehouse |
 
 All containers share the `ndsnet` bridge network and reach each other by service name.
@@ -63,7 +69,7 @@ Sources (APIs, files, crawlers)
               │
               ├── Metabase (port 3000)   BI dashboards
               ├── JupyterLab (port 8888) ad-hoc analysis
-              └── AnythingLLM (port 3001) LLM/RAG over warehouse data
+              └── OpenWebUI (port 8090)  end-user chat / RAG
 
 MinIO files (Delta / Iceberg format)
         │
@@ -73,13 +79,38 @@ MinIO files (Delta / Iceberg format)
 
 ---
 
+## Agent operations layer
+
+End users operate the platform through chat:
+
+```
+End user -> OpenWebUI (8090) -> Hermes (8642) -> LiteLLM (4000) -> LLM providers
+                                   |
+                                   +-- platform tasks -> claude-ops -p "<task>"
+                                          headless Claude Code, cwd application/
+                                          loads application/CLAUDE.md + .claude/
+                                          drives the stack via the Docker socket
+```
+
+- `application/CLAUDE.md` + `application/.claude/` are a **separate Claude Code
+  environment** for the operator agent — distinct from the repo-root `.claude/`
+  and `.gemini/` developer environments. Do not conflate them.
+- `litellm` and `open-webui` use the existing `warehouse_db` (databases
+  `litellm` and `openwebui`, created by `init/04-agent-dbs.sh`).
+- The operator agent may run dbt/Mage/MinIO/warehouse tasks and restart
+  services; it does not edit `docker-compose.yml`/`.env` or re-create containers.
+
+---
+
 ## Databases inside warehouse_db (Postgres 17)
 
 | Database | Purpose |
 |---|---|
 | `warehouse` | Main data warehouse — all dlt/dbt schemas (raw, stg, bdh, adl). Also stores Iceberg JDBC catalog metadata and Metabase app metadata. |
-| `anythingllm` | AnythingLLM app DB (Prisma) + pgvector embeddings table (`anythingllm_vectors`) |
+| `anythingllm` | AnythingLLM app DB (Prisma) + pgvector embeddings table (`anythingllm_vectors`) (legacy — service removed; DB retained) |
 | `metastore` | Hive Metastore schema (used by hive-metastore service for Delta Lake table metadata) |
+| `openwebui` | OpenWebUI app DB + pgvector RAG store |
+| `litellm` | LiteLLM gateway app DB |
 
 Extensions enabled in `warehouse` database: `pg_duckdb`, `vector`, `postgis`, `postgis_raster`, DuckDB `spatial` extension.
 
@@ -105,12 +136,6 @@ Key groups — do not hardcode these in config files:
 | `MINIO_ADMIN` / `MINIO_PWD` / `MINIO_URL` | MinIO, Mage, Hive Metastore, Trino |
 | `WAREHOUSE_DB_USER` / `_PASS` / `_DBNAME` | warehouse_db, Hive Metastore, Metabase, Trino catalogs |
 | `MB_DB_DBNAME` | Metabase (stored in `warehouse` db) |
-| `LLM_PROVIDER`, `GEMINI_*` | AnythingLLM — LLM and embedding config |
-| `VECTOR_DB`, `PGVECTOR_CONNECTION_STRING`, `PGVECTOR_TABLE_NAME` | AnythingLLM vector store |
-| `DATABASE_URL` | AnythingLLM app DB connection (Postgres) |
-| `JWT_SECRET`, `SIG_KEY`, `SIG_SALT` | AnythingLLM auth — do NOT rotate without resetting user sessions |
-
-All AnythingLLM config now lives in the project root `.env` and is injected into the container via `env_file: .env` in `docker-compose.yml`. There is no longer a separate `application/anythingllm.env` file.
 
 ---
 
@@ -185,18 +210,6 @@ Trino runs as a single coordinator (no separate workers). Max heap: 2 GB. Config
 
 ---
 
-## AnythingLLM configuration
-
-- Image: `mintplexlabs/anythingllm:pg` (Postgres-enabled build)
-- LLM: Gemini Flash (`gemini-flash-latest`)
-- Embeddings: Gemini `text-embedding-004`
-- App DB: `anythingllm` database on `warehouse_db` (Prisma / Postgres)
-- Vector store: pgvector in `anythingllm` database, table `anythingllm_vectors`
-- Config comes from the project root `.env` via `env_file:` in `docker-compose.yml` (no separate file mounted at `/app/server/.env`)
-- Data volumes: `./data/anythingllm/` (storage, hotdir, outputs) — not under `application/`
-
----
-
 ## Storage layout (MinIO buckets via `./storage/`)
 
 ```
@@ -212,12 +225,12 @@ storage/
 
 ## Key patterns and conventions
 
-1. **Single warehouse, multiple engines.** All analytical tools (Metabase, JupyterLab, AnythingLLM) connect to `warehouse_db:5432/warehouse`. pg_duckdb adds columnar performance without a second warehouse.
+1. **Single warehouse, multiple engines.** All analytical tools (Metabase, JupyterLab, OpenWebUI) connect to `warehouse_db:5432/warehouse`. pg_duckdb adds columnar performance without a second warehouse.
 2. **dlt for EL, dbt for T.** dlt loads raw data into the `raw` schema; dbt transforms upward through `stg → bdh → adl`. Never write transformation logic in dlt blocks.
 3. **MinIO is S3.** All S3 references use `http://minio:9000` inside the network. Bucket name for the data lake is `dwhfilesystem`.
 4. **Hive Metastore is for Delta Lake only.** Iceberg uses the JDBC catalog (no Hive needed). Do not use Hive Metastore for Iceberg tables.
 5. **No Spark.** Spark was removed. Do not add Spark-dependent pipelines or reference `spark://spark-master:7077`. The metadata.yaml entry is stale.
-6. **warehouse_db hosts multiple databases.** `warehouse` (data), `anythingllm` (LLM app), `metastore` (Hive), `metabase` (Metabase app). All created by init scripts at first boot.
+6. **warehouse_db hosts multiple databases.** `warehouse` (data), `anythingllm` (legacy, retained), `metastore` (Hive), `metabase` (Metabase app), `openwebui` (OpenWebUI), `litellm` (LiteLLM). All created by init scripts at first boot.
 7. **Credentials live in `.env` only.** Trino catalog `.properties` files have credentials hardcoded (Trino doesn't support env var substitution). These must stay in sync with `.env` manually.
 
 ---
@@ -227,5 +240,3 @@ storage/
 - **Trino catalog credentials are duplicated.** `application/trino/catalog/*.properties` hardcode `warehouse`/`warehouse` and `admin`/`admin123`. If you change `.env` credentials, update the catalog files too.
 - **`metadata.yaml` has stale Spark config.** Safe to leave as-is since Spark is not running, but don't rely on those settings.
 - **`03-extra-dbs.sh` creates `metabase` db** — Metabase now uses `warehouse_db` as its backing store (not a separate `metabase_db` container).
-- **AnythingLLM consumes the project root `.env`** via `env_file: .env`. AnythingLLM may auto-write a `/app/server/.env` inside the container when settings are changed via the UI; that write stays inside the container and is lost on restart, so **UI-driven config changes do not persist** — update the project root `.env` instead.
-- **`data/anythingllm/`** is the runtime data directory (not `application/anythingllm/`). This path is gitignored.
