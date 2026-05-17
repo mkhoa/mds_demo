@@ -51,7 +51,7 @@ OpenWebUI (8090) ──── chat UI, RAG (pgvector in warehouse_db / openwebui
 Hermes (8642) ──── operator agent
    │   │
    │   └─ for any data-platform task: claude-ops -p "<task>"   (headless Claude Code)
-   │            cwd = /workspace/application  → loads application/.claude/
+   │            cwd = /workspace/application  → loads application/CLAUDE.md + .claude/
    │            ├─ dbt / Mage / warehouse / MinIO        (data ops)
    │            └─ docker CLI via /var/run/docker.sock   (service lifecycle)
    ▼
@@ -70,7 +70,8 @@ LiteLLM (4000) ──── model gateway → Gemini / OpenRouter / Anthropic (s
   - working directory `/workspace/application`
 - Hermes is instructed (via its persona / a Hermes skill) to delegate any
   data-platform request by invoking `claude-ops -p "<task>"`. Claude Code then
-  auto-loads `application/.claude/` (CLAUDE.md, skills, commands, agents).
+  auto-loads `application/CLAUDE.md` and `application/.claude/` (skills,
+  commands, agents).
 - **Rejected alternative:** running Claude Code as an MCP server consumed by
   Hermes — more moving parts than the headless-subprocess pattern, which
   `llm-webui-app` already proves works.
@@ -79,7 +80,7 @@ LiteLLM (4000) ──── model gateway → Gemini / OpenRouter / Anthropic (s
 
 | Mount | Mode | Purpose |
 |---|---|---|
-| `./application:/workspace/application` | rw | Working tree — contains `application/.claude` |
+| `./application:/workspace/application` | rw | Working tree — contains `application/CLAUDE.md` + `application/.claude/` |
 | `/var/run/docker.sock:/var/run/docker.sock` | — | Service lifecycle (restart / logs / stats / health) |
 | `./data/hermes:/opt/data` | rw | Hermes agent state |
 
@@ -104,37 +105,49 @@ Idempotent, mirroring the existing `03-extra-dbs.sh`. Note: init scripts only
 run on **first boot** of `warehouse_db`; for an existing volume the two
 databases must be created manually once (documented in the plan).
 
-## `application/.claude/` — operator configuration
+## `application/` — operator Claude Code environment
 
-Organized on the ai-analyst pattern, adapted from "generate slide decks" to
-"operate a data platform". This is a **separate, narrower project scope** from
-the repo-root `mds_demo/.claude` (the human dev environment) — the two do not
-interfere.
+`application/CLAUDE.md` and `application/.claude/` together form a **fully
+separate Claude Code environment**, rooted at `application/`, that exists only
+to be triggered by the Hermes agent. It is organized on the ai-analyst pattern,
+adapted from "generate slide decks" to "operate a data platform".
+
+**Isolation from the repo-root environment.** Hermes mounts *only* the
+`application/` folder (`./application:/workspace/application`). When `claude-ops`
+runs Claude Code with cwd `/workspace/application`, `application/` is its
+project root: it loads `application/CLAUDE.md` and `application/.claude/`, and
+never traverses up to `mds_demo/CLAUDE.md`, `mds_demo/.claude/`, or
+`mds_demo/.gemini/`. Those repo-root files are the **human developer**
+environment — a different audience, a different scope — and are deliberately
+invisible to the operator agent. The two environments share no config, no
+skills, and no settings; they must not be conflated.
 
 ```
-application/.claude/
-├── CLAUDE.md                  # operator charter: stack map, service names/ports,
-│                              #   safety boundaries, which skill for which task
-├── settings.json              # enables dbt plugin; permissions allowlist
-│                              #   (docker, dbt, mc, psql)
-├── skills/
-│   ├── platform-orientation/      # always-on: the ndsnet map, how services connect
-│   ├── operating-services/        # docker ps / logs / restart / stats + health sweeps
-│   ├── running-dbt-models/        # deps / compile / run / test / show in data_warehouse
-│   ├── managing-mage-pipelines/   # build blocks + trigger pipelines
-│   ├── querying-the-warehouse/    # psql / pg_duckdb against warehouse_db
-│   └── managing-minio-storage/    # mc bucket / object operations
-├── commands/
-│   ├── health-check.md            # /health-check — sweep every service
-│   ├── run-dbt.md                 # /run-dbt <selector>
-│   ├── run-pipeline.md            # /run-pipeline <name>
-│   └── restart-service.md         # /restart-service <name>
-├── agents/
-│   ├── pipeline-operator.md       # runs an EL+T pipeline end to end
-│   └── incident-investigator.md   # diagnoses a failing / unhealthy service
-└── knowledge/
-    ├── runbooks.md                # common incident → fix runbooks
-    └── corrections.md             # learned gotchas, appended over time
+application/
+├── CLAUDE.md                          # operator charter: stack map, service
+│                                      #   names/ports, safety boundaries,
+│                                      #   which skill for which task
+└── .claude/
+    ├── settings.json                  # enables dbt plugin; permissions
+    │                                  #   allowlist (docker, dbt, mc, psql)
+    ├── skills/
+    │   ├── platform-orientation/      # always-on: the ndsnet map, how services connect
+    │   ├── operating-services/        # docker ps / logs / restart / stats + health sweeps
+    │   ├── running-dbt-models/        # deps / compile / run / test / show in data_warehouse
+    │   ├── managing-mage-pipelines/   # build blocks + trigger pipelines
+    │   ├── querying-the-warehouse/    # psql / pg_duckdb against warehouse_db
+    │   └── managing-minio-storage/    # mc bucket / object operations
+    ├── commands/
+    │   ├── health-check.md            # /health-check — sweep every service
+    │   ├── run-dbt.md                 # /run-dbt <selector>
+    │   ├── run-pipeline.md            # /run-pipeline <name>
+    │   └── restart-service.md         # /restart-service <name>
+    ├── agents/
+    │   ├── pipeline-operator.md       # runs an EL+T pipeline end to end
+    │   └── incident-investigator.md   # diagnoses a failing / unhealthy service
+    └── knowledge/
+        ├── runbooks.md                # common incident → fix runbooks
+        └── corrections.md             # learned gotchas, appended over time
 ```
 
 ### Skill content sources
@@ -144,12 +157,14 @@ application/.claude/
 - `running-dbt-models` — stays thin; the `dbt` plugin (already enabled) provides
   the dbt mechanics. This skill only carries project-specific selectors, paths
   (`dbt/data_warehouse`), and the schema-layer conventions (`raw → stg → bdh → adl`).
-- The other skills are written fresh against the stack described in the root
-  `CLAUDE.md`.
+- The other skills are written fresh against the stack described in the
+  repo-root `CLAUDE.md` — but the *content* is copied into the operator
+  environment; the operator agent never reads the repo-root file directly.
 
 ### Scope guardrails
 
-The operator `CLAUDE.md` and `settings.json` explicitly bound the agent:
+The operator `application/CLAUDE.md` and `application/.claude/settings.json`
+explicitly bound the agent:
 - **Allowed:** run dbt, build/trigger Mage pipelines, query the warehouse,
   manage MinIO objects, and `restart` / `logs` / `stats` / health-check containers.
 - **Out of scope:** editing `docker-compose.yml` or `.env`, re-creating
@@ -173,7 +188,8 @@ The operator `CLAUDE.md` and `settings.json` explicitly bound the agent:
 - `application/litellm/config.yaml` (mounted into the official LiteLLM image; no custom Dockerfile)
 - `application/hermes/Dockerfile`, `application/hermes/init.sh`, `application/hermes/claude-ops`
 - `application/warehouse_db/init/04-agent-dbs.sh`
-- `application/.claude/CLAUDE.md`, `application/.claude/settings.json`
+- `application/CLAUDE.md` (operator charter, at the `application/` root — *not* inside `.claude/`)
+- `application/.claude/settings.json`
 - `application/.claude/skills/*` (6 skills)
 - `application/.claude/commands/*` (4 commands)
 - `application/.claude/agents/*` (2 agents)
