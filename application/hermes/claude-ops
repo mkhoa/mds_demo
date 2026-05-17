@@ -18,4 +18,12 @@ export ANTHROPIC_CUSTOM_HEADERS="x-litellm-api-key: Bearer ${LITELLM_MASTER_KEY}
 
 # The operator environment is rooted at the mounted application/ folder.
 cd /workspace/application
+
+# Claude Code refuses --permission-mode bypassPermissions when running as root.
+# Hermes runs as the non-root 'hermes' user, so normally this is already fine;
+# but when claude-ops is invoked as root (e.g. via `docker exec`), drop to the
+# 'hermes' user (uid 1000) — this also keeps files it edits host-user-owned.
+if [ "$(id -u)" = "0" ]; then
+  exec runuser -u hermes -- claude --permission-mode bypassPermissions "$@"
+fi
 exec claude --permission-mode bypassPermissions "$@"

@@ -1,10 +1,6 @@
 #!/bin/sh
 set -e
 
-# Make the mounted Docker socket usable for service lifecycle. Best-effort:
-# only succeeds when this entrypoint runs as root (the image default).
-chmod 666 /var/run/docker.sock 2>/dev/null || true
-
 . /opt/hermes/.venv/bin/activate
 
 # Install the operator persona on first boot (does not overwrite edits).

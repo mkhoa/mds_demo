@@ -5,10 +5,13 @@ Known platform issues and their fixes. Check here before deep investigation.
 ## Docker socket: "permission denied"
 
 `docker` commands fail with a permission error on `/var/run/docker.sock`.
-Cause: the socket's group is not accessible to the operator user. The Hermes
-`init.sh` runs `chmod 666` on the socket at startup; if the container was
-started before that ran, restart `hermes`. If it persists, the host socket
-group GID must be added to the container — flag this to a human.
+Cause: the non-root `hermes` user is not in the host's `docker` group. The
+Hermes image adds it via the `DOCKER_GID` build arg in
+`application/hermes/Dockerfile` (default `987`). If this error appears, the
+host GID has likely drifted — run `stat -c %g /var/run/docker.sock` on the
+host, then rebuild the Hermes image with `--build-arg DOCKER_GID=<gid>` and
+recreate the container. Rebuilding images is out of scope for the operator,
+so flag this to a human.
 
 ## A service shows "unhealthy"
 

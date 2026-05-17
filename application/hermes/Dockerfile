@@ -22,6 +22,13 @@ RUN curl -fsSL "https://download.docker.com/linux/static/stable/x86_64/docker-${
  && chmod +x /usr/local/lib/docker/cli-plugins/docker-compose \
  && docker --version && docker compose version
 
+# Put the non-root 'hermes' user in the host's docker group so the operator
+# (which runs as 'hermes') can use the mounted Docker socket. DOCKER_GID must
+# match `stat -c %g /var/run/docker.sock` on the host.
+ARG DOCKER_GID=987
+RUN if ! getent group "${DOCKER_GID}" >/dev/null; then groupadd -g "${DOCKER_GID}" dockerhost; fi \
+ && usermod -aG "$(getent group "${DOCKER_GID}" | awk -F: '{print $1}')" hermes
+
 COPY claude-ops /usr/local/bin/claude-ops
 COPY init.sh /usr/local/bin/hermes-init.sh
 RUN mkdir -p /usr/local/share/hermes
