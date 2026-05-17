@@ -25,10 +25,18 @@ The `mc` client is not in this container. Run it as a one-shot container on
 ## Buckets
 
 `dwhfilesystem` is the primary data lake (Delta + Iceberg + parquet);
-`dwhfilesystem/landing_area/` is the raw file drop zone.
+`dwhfilesystem/landing_area/ (in MinIO)` is the raw file drop zone.
 
 ## Rules
 
 Listing and stat are always safe. Do NOT delete buckets or run recursive
 `mc rm` — destructive deletion is out of scope. Confirm any single-object
 removal with the user first.
+
+
+## MDS Platform Context
+- **Warehouse:** Postgres 17 (`warehouse_db`) with `pg_duckdb` and `pgvector`.
+- **Storage:** MinIO (`dwhfilesystem`) for landing area.
+- **Orchestration:** Mage AI with dbt-core.
+- **Federation:** Trino for cross-source joins.
+- **BI:** Metabase dashboards.

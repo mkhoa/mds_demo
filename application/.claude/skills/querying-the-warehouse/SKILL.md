@@ -28,3 +28,11 @@ Read-only by default: `SELECT`, `\dt`, `\d`, `count(*)`. Never `DROP`,
 `TRUNCATE`, or `DELETE` against warehouse schemas — that is out of scope.
 For analytical scans, pg_duckdb is available; standard SQL is fine for
 inspection.
+
+
+## MDS Platform Context
+- **Warehouse:** Postgres 17 (`warehouse_db`) with `pg_duckdb` and `pgvector`.
+- **Storage:** MinIO (`dwhfilesystem`) for landing area.
+- **Orchestration:** Mage AI with dbt-core.
+- **Federation:** Trino for cross-source joins.
+- **BI:** Metabase dashboards.

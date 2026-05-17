@@ -17,7 +17,7 @@ warehouse_db.raw -> dbt -> stg -> bdh -> adl -> Metabase / JupyterLab
 
 ## Services and what they do
 
-- `minio` — S3-compatible object storage. Data lake bucket: `dwhfilesystem`.
+- `minio` — MinIO (S3)-compatible object storage. Data lake bucket: `dwhfilesystem`.
 - `warehouse_db` — Postgres 17 warehouse. Databases: `warehouse` (data),
   plus `metastore`, `metabase`, `openwebui`, `litellm` app DBs.
 - `magic` — Mage.ai. Runs dlt (extract/load) and dbt (transform). The dbt
@@ -36,3 +36,11 @@ warehouse_db.raw -> dbt -> stg -> bdh -> adl -> Metabase / JupyterLab
 
 See the `operating-services` skill. All commands go through:
 `docker compose -p mds_demo -f /workspace/docker-compose.yml ...`
+
+
+## MDS Platform Context
+- **Warehouse:** Postgres 17 (`warehouse_db`) with `pg_duckdb` and `pgvector`.
+- **Storage:** MinIO (`dwhfilesystem`) for landing area.
+- **Orchestration:** Mage AI with dbt-core.
+- **Federation:** Trino for cross-source joins.
+- **BI:** Metabase dashboards.

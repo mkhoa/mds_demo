@@ -43,7 +43,7 @@ def test_output(df, *args) -> None:
 ```
 
 ### Common Loaders
-- **MinIO/S3:** Use `fsspec` and `os.getenv` for credentials.
+- **MinIO/MinIO (S3):** Use `fsspec` and `os.getenv` for credentials.
 - **HTTP:** Use `requests` and `io.BytesIO`.
 
 ---
@@ -96,7 +96,7 @@ def export_delta(df, *args, **kwargs):
         'AWS_SECRET_ACCESS_KEY': os.getenv('MINIO_ROOT_PASSWORD', 'admin123'),
         'AWS_ENDPOINT_URL': os.getenv('MINIO_ENDPOINT', 'http://minio:9000'),
         'AWS_REGION': 'us-east-1',
-        'AWS_S3_ALLOW_UNSAFE_RENAME': 'true',
+        'AWS_MinIO (S3)_ALLOW_UNSAFE_RENAME': 'true',
         'AWS_ALLOW_HTTP': 'true',
     })
 ```
@@ -134,3 +134,11 @@ Run a pipeline from the `magic` container:
 
 List pipelines by inspecting `application/mage_ai/mds_demo/pipelines/`.
 After a run, verify the loaded data with the `querying-the-warehouse` skill.
+
+
+## MDS Platform Context
+- **Warehouse:** Postgres 17 (`warehouse_db`) with `pg_duckdb` and `pgvector`.
+- **Storage:** MinIO (`dwhfilesystem`) for landing area.
+- **Orchestration:** Mage AI with dbt-core.
+- **Federation:** Trino for cross-source joins.
+- **BI:** Metabase dashboards.

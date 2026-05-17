@@ -31,3 +31,11 @@ Read the dbt error block. Common causes: an upstream model not built yet
 Mage pipeline — see `managing-mage-pipelines`). If the `--profiles-dir` or
 project path differs from the above, record the correct values in
 `.claude/knowledge/corrections.md`.
+
+
+## MDS Platform Context
+- **Warehouse:** Postgres 17 (`warehouse_db`) with `pg_duckdb` and `pgvector`.
+- **Storage:** MinIO (`dwhfilesystem`) for landing area.
+- **Orchestration:** Mage AI with dbt-core.
+- **Federation:** Trino for cross-source joins.
+- **BI:** Metabase dashboards.

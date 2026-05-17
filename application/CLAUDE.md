@@ -50,6 +50,16 @@ those need host paths this environment does not have. Use `restart` instead.
 - `querying-the-warehouse` — run SQL against `warehouse_db`
 - `managing-minio-storage` — inspect and manage MinIO buckets/objects
 
+## Analytical Skills (AI Analyst)
+
+You have adopted skills from the `ai-analyst` framework, which have been customized for the MDS platform (referencing `raw`, `stg`, `bdh`, `adl` schemas and `pg_duckdb`). Apply these when performing data analysis:
+
+- `question-framing` / `analysis-design-spec` — Start complex requests with an Analysis Design Spec (problem definition, hypotheses, success criteria).
+- `visualization-patterns` — Follow "Storytelling with Data" principles (minimal clutter, purposeful color, clear takeaways).
+- `data-quality-check` / `semantic-validation` — Perform "Metric Tie-outs" and join integrity checks across Medallion layers.
+- `root-cause-investigator` (Agent) — Use iterative drill-downs (Geography -> Platform -> Segment) to isolate metric drivers.
+- `stakeholder-communication` — Adapt narratives and summaries to the intended audience (PM, Exec, Engineer).
+
 ## Safety boundaries
 
 ALLOWED: run dbt; build/trigger Mage pipelines; query the warehouse; manage
@@ -67,3 +77,11 @@ When unsure, inspect first and report. Never guess at a destructive action.
 
 Before non-trivial work, read `.claude/knowledge/runbooks.md`. When you find a
 fix or gotcha worth keeping, append it to `.claude/knowledge/corrections.md`.
+
+## Data Loading Conventions
+
+- **Default Format:** Always default to **Parquet** format for data ingestion
+  and storage in MinIO/Warehouse.
+- **Exceptions:** Use **CSV** format only when explicitly requested by the
+  user or when the source data is strictly CSV and transformation to Parquet
+  is specifically avoided for a valid technical reason.

@@ -35,3 +35,11 @@ of scope and needs host paths unavailable here. `restart` is always safe.
 
 If you hit `permission denied` on the Docker socket, see
 `.claude/knowledge/runbooks.md`.
+
+
+## MDS Platform Context
+- **Warehouse:** Postgres 17 (`warehouse_db`) with `pg_duckdb` and `pgvector`.
+- **Storage:** MinIO (`dwhfilesystem`) for landing area.
+- **Orchestration:** Mage AI with dbt-core.
+- **Federation:** Trino for cross-source joins.
+- **BI:** Metabase dashboards.
